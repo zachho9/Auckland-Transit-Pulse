@@ -89,6 +89,7 @@ describe('parseVehicles', () => {
       },
     }];
     expect(parseVehicles(entities, tripDelayMap)[0].delaySeverity).toBe('red');
+    expect(parseVehicles(entities, tripDelayMap)[0].routeShortName).toBe('EAST');
   });
 
   it('assigns none severity when no trip delay data exists for the vehicle', () => {
@@ -101,6 +102,7 @@ describe('parseVehicles', () => {
     }];
     expect(parseVehicles(entities, tripDelayMap)[0].delaySeverity).toBe('none');
     expect(parseVehicles(entities, tripDelayMap)[0].mode).toBe('ferry');
+    expect(parseVehicles(entities, tripDelayMap)[0].routeShortName).toBe('FERRY1');
   });
 
   it('skips vehicles with no position', () => {
