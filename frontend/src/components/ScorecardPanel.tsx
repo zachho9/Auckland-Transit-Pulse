@@ -18,7 +18,7 @@ export function ScorecardPanel() {
   const modes: TransitMode[] = ['bus', 'train', 'ferry'];
 
   return (
-    <section className="flex-[3] overflow-y-auto p-4 border-b border-gray-700">
+    <section className="flex-[3] flex flex-col justify-center p-4 border-b border-gray-700">
       <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">
         Network Scorecard
       </h2>
@@ -28,7 +28,7 @@ export function ScorecardPanel() {
           const pct = stats?.percentOnTime ?? 0;
           return (
             <div key={mode} className="flex-1 text-center">
-              <div className={`text-[clamp(1.5rem,2.2vh,2rem)] font-bold ${stats ? pctColour(pct) : 'text-gray-600'}`}>
+              <div className={`text-[clamp(1.5rem,5vh,5rem)] font-bold ${stats ? pctColour(pct) : 'text-gray-600'}`}>
                 {stats ? `${pct}%` : '—'}
               </div>
               <div className="text-xs text-gray-400 mt-1">{MODE_LABELS[mode]}</div>
