@@ -1,3 +1,5 @@
 .claude/
 data/
 node_modules/
+docs/deploy-guides.md
+infra/cdk.out/
