@@ -1,6 +1,8 @@
+import { useState, useMemo } from 'react';
 import { MapContainer, TileLayer, Marker, Tooltip, Popup } from 'react-leaflet';
 import { divIcon } from 'leaflet';
 import { useSnapshot } from '../context/SnapshotContext';
+import { RouteSearchOverlay } from './RouteSearchOverlay';
 import type { DelaySeverity, TransitMode } from 'shared/types';
 import 'leaflet/dist/leaflet.css';
 
@@ -57,42 +59,54 @@ function makeIcon(mode: TransitMode, severity: DelaySeverity): ReturnType<typeof
 export function MapPanel() {
   const { snapshot } = useSnapshot();
   const vehicles = snapshot?.vehicles ?? [];
+  const [routeFilter, setRouteFilter] = useState<string | null>(null);
+
+  const routeOptions = useMemo(
+    () => [...new Set(vehicles.map(v => v.routeShortName))].sort(),
+    [vehicles]
+  );
 
   return (
-    <MapContainer
-      center={AUCKLAND_CENTRE}
-      zoom={11}
-      className="h-full w-full"
-      zoomControl
-    >
-      <TileLayer
-        url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-        subdomains="abcd"
-        maxZoom={20}
-        className="brightness-map"
-      />
-      {vehicles.map(v => (
-        <Marker
-          key={v.id}
-          position={[v.lat, v.lng]}
-          icon={makeIcon(v.mode, v.delaySeverity)}
-        >
-          <Tooltip>
-            {MODE_LABEL[v.mode]} · {SEVERITY_LABEL[v.delaySeverity]}
-          </Tooltip>
-          <Popup>
-            <div style={{ minWidth: 90 }}>
-              <div style={{ fontWeight: 700, fontSize: 14, color: SEVERITY_COLOUR[v.delaySeverity] }}>
-                {v.routeShortName}
+    <div className="h-full w-full relative">
+      <MapContainer
+        center={AUCKLAND_CENTRE}
+        zoom={11}
+        className="h-full w-full"
+        zoomControl
+      >
+        <TileLayer
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+          subdomains="abcd"
+          maxZoom={20}
+          className="brightness-map"
+        />
+        {vehicles.map(v => (
+          <Marker
+            key={v.id}
+            position={[v.lat, v.lng]}
+            icon={makeIcon(v.mode, v.delaySeverity)}
+            opacity={routeFilter && v.routeShortName !== routeFilter ? 0.15 : 1}
+          >
+            <Tooltip>
+              {MODE_LABEL[v.mode]} · {SEVERITY_LABEL[v.delaySeverity]}
+            </Tooltip>
+            <Popup>
+              <div style={{ minWidth: 90 }}>
+                <div style={{ fontWeight: 700, fontSize: 14, color: SEVERITY_COLOUR[v.delaySeverity] }}>
+                  {v.routeShortName}
+                </div>
+                <div style={{ color: '#9ca3af', fontSize: 12, marginTop: 2 }}>
+                  {MODE_LABEL[v.mode]} · {SEVERITY_LABEL[v.delaySeverity]}
+                </div>
               </div>
-              <div style={{ color: '#9ca3af', fontSize: 12, marginTop: 2 }}>
-                {MODE_LABEL[v.mode]} · {SEVERITY_LABEL[v.delaySeverity]}
-              </div>
-            </div>
-          </Popup>
-        </Marker>
-      ))}
-    </MapContainer>
+            </Popup>
+          </Marker>
+        ))}
+      </MapContainer>
+      <div className="absolute top-4 right-4 z-[1000]">
+        <RouteSearchOverlay options={routeOptions} onSelect={setRouteFilter} />
+      </div>
+    </div>
   );
 }
