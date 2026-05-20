@@ -18,3 +18,7 @@ body,
   color: #f3f4f6;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
+
+.brightness-map img {
+  filter: brightness(2.5);
+}
