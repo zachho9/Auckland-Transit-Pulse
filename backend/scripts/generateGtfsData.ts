@@ -34,7 +34,7 @@ ${entries}
 };
 `;
 
-const outDir = path.join(__dirname, '../src/poller');
+const outDir = path.join(process.cwd(), 'src/poller');
 fs.mkdirSync(outDir, { recursive: true });
 const outPath = path.join(outDir, 'gtfsData.ts');
 fs.writeFileSync(outPath, output, 'utf-8');
