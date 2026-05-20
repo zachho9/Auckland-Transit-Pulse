@@ -77,7 +77,7 @@ export function MapPanel() {
           icon={makeIcon(v.mode, v.delaySeverity)}
         >
           <Tooltip>
-            {MODE_LABEL[v.mode]} · {v.delaySeverity === 'none' ? 'no delay data' : v.delaySeverity}
+            {MODE_LABEL[v.mode]} · {SEVERITY_LABEL[v.delaySeverity]}
           </Tooltip>
           <Popup>
             <div style={{ minWidth: 90 }}>
