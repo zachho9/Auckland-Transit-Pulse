@@ -48,7 +48,8 @@ function makeIcon(mode: TransitMode, severity: DelaySeverity): ReturnType<typeof
     size = [18, 16];
   }
 
-  const icon = divIcon({ html, className: '', iconSize: size, iconAnchor: [size[0] / 2, size[1] / 2] });
+  const iconAnchor: [number, number] = mode === 'ferry' ? [9, 10] : [size[0] / 2, size[1] / 2];
+  const icon = divIcon({ html, className: '', iconSize: size, iconAnchor });
   _iconCache.set(key, icon);
   return icon;
 }
@@ -84,7 +85,7 @@ export function MapPanel() {
               <div style={{ fontWeight: 700, fontSize: 14, color: SEVERITY_COLOUR[v.delaySeverity] }}>
                 {v.routeShortName}
               </div>
-              <div style={{ color: '#666', fontSize: 12, marginTop: 2 }}>
+              <div style={{ color: '#9ca3af', fontSize: 12, marginTop: 2 }}>
                 {MODE_LABEL[v.mode]} · {SEVERITY_LABEL[v.delaySeverity]}
               </div>
             </div>
