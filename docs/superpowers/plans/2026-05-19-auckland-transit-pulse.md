@@ -1864,9 +1864,47 @@ git commit -m "feat: wire full 62/38 dashboard layout with map and sidebar panel
 
 ---
 
-## Task 13: SSM Setup + CDK Deploy + Amplify + Smoke Test
+## Task 13: AWS Setup + CDK Deploy + Amplify + Smoke Test
 
-- [ ] **Step 1: Store the AT API key in SSM Parameter Store**
+- [ ] **Step 1: Create a non-root IAM user for CLI access (one-time)**
+
+Never use root credentials for CLI work. In the AWS Console (logged in as root):
+
+1. Go to **IAM → Users → Create user**
+2. Username: `Auckland-Transit-Pulse-Dev`
+3. **Provide user access to the AWS Management Console** — No (CLI only)
+4. Attach policy: `AdministratorAccess`
+5. After creation, go to the user → **Security credentials** → **Create access key**
+6. Use case: **Command Line Interface (CLI)**, dismiss the IAM Identity Center warning
+7. Download the CSV or copy the Access Key ID and Secret Access Key
+
+- [ ] **Step 2: Configure AWS CLI with the new IAM user credentials**
+
+```bash
+aws configure --profile atpulse-dev
+```
+
+Enter when prompted:
+```
+AWS Access Key ID:     <from Step 1>
+AWS Secret Access Key: <from Step 1>
+Default region name:   ap-southeast-2
+Default output format: json
+```
+
+Verify it works and confirms you are NOT using root:
+```bash
+aws sts get-caller-identity --profile atpulse-dev
+```
+
+Expected: `"Arn": "arn:aws:iam::ACCOUNT_ID:user/Auckland-Transit-Pulse-Dev"`
+
+Set the profile for the rest of this session:
+```bash
+export AWS_PROFILE=atpulse-dev
+```
+
+- [ ] **Step 3: Store the AT API key in SSM Parameter Store**
 
 ```bash
 aws ssm put-parameter \
@@ -1878,7 +1916,7 @@ aws ssm put-parameter \
 
 Expected: `{ "Version": 1, "Tier": "Standard" }`
 
-- [ ] **Step 2: Bootstrap CDK for your account (one-time, skip if done)**
+- [ ] **Step 4: Bootstrap CDK for your account (one-time, skip if done)**
 
 ```bash
 aws sts get-caller-identity   # note your account ID
@@ -1887,7 +1925,7 @@ cdk bootstrap aws://YOUR_ACCOUNT_ID/ap-southeast-2
 
 Expected: `✅ Environment aws://ACCOUNT_ID/ap-southeast-2 bootstrapped.`
 
-- [ ] **Step 3: Deploy the CDK stack**
+- [ ] **Step 5: Deploy the CDK stack**
 
 ```bash
 cd infra
@@ -1905,7 +1943,7 @@ AucklandTransitPulseStack.ApiUrl = https://XXXXXXXXXX.execute-api.ap-southeast-2
 
 Copy the `ApiUrl` value — you'll need it for Amplify.
 
-- [ ] **Step 4: Test the API Lambda manually (snapshot will be empty until poller runs)**
+- [ ] **Step 6: Test the API Lambda manually (snapshot will be empty until poller runs)**
 
 ```bash
 curl https://XXXXXXXXXX.execute-api.ap-southeast-2.amazonaws.com/prod/snapshot
@@ -1920,18 +1958,33 @@ curl https://XXXXXXXXXX.execute-api.ap-southeast-2.amazonaws.com/prod/snapshot |
 
 Expected: JSON starting with `{"updatedAt":"...","scorecard":{...}` — confirms the full pipeline is working.
 
-- [ ] **Step 5: Connect Amplify Hosting to the git repository**
+- [ ] **Step 7: Create a GitHub repository and push the code**
+
+> **STOP — provide the following before continuing:**
+> 1. Create a new repository on GitHub (e.g. `auckland-transit-pulse`) — public or private, your choice
+> 2. Tell me the repository URL (e.g. `https://github.com/YOUR_USERNAME/auckland-transit-pulse`)
+> I will then run the push commands for you.
+
+Once you have provided the URL, run:
+```bash
+git remote add origin https://github.com/YOUR_USERNAME/auckland-transit-pulse.git
+git push -u origin main
+```
+
+Expected: all commits from Tasks 1–12 pushed to GitHub.
+
+- [ ] **Step 8: Connect Amplify Hosting to the git repository**
 
 In the AWS Console:
 1. Open **AWS Amplify** → **Create new app** → **Host web app**
-2. Choose your git provider (GitHub), authorise, and select the `auckland-transit-pulse` repository and `main` branch
+2. Choose **GitHub**, authorise, and select the `auckland-transit-pulse` repository and `main` branch
 3. Build settings: Amplify will detect `amplify.yml` automatically
 4. Add environment variable: `VITE_API_URL` = `https://XXXXXXXXXX.execute-api.ap-southeast-2.amazonaws.com/prod`
 5. Click **Save and deploy**
 
 Expected: Amplify builds and deploys. The app URL appears (e.g. `https://main.XXXX.amplifyapp.com`).
 
-- [ ] **Step 6: Open the Amplify URL and smoke test**
+- [ ] **Step 9: Open the Amplify URL and smoke test**
 
 Open the Amplify URL in a desktop browser (1280px+ width). Verify:
 - Dark dashboard loads
@@ -1942,7 +1995,7 @@ Open the Amplify URL in a desktop browser (1280px+ width). Verify:
 - "Last updated" timestamp advances every ~30s
 - Browser console shows no errors
 
-- [ ] **Step 7: Commit any remaining files and tag the MVP release**
+- [ ] **Step 10: Commit any remaining files and tag the MVP release**
 
 ```bash
 git add .

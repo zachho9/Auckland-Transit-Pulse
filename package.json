@@ -1,0 +1,5 @@
+{
+  "name": "auckland-transit-pulse",
+  "private": true,
+  "workspaces": ["shared", "backend", "frontend", "infra"]
+}
