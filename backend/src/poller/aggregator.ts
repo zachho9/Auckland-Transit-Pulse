@@ -45,6 +45,7 @@ export function parseVehicles(
       lng: v.position.longitude,
       delaySeverity: classifyDelay(delay),
       mode,
+      routeShortName: routeInfo.shortName,
     });
   }
   return result;

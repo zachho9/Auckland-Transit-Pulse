@@ -7,6 +7,7 @@ export interface VehicleSnapshot {
   lng: number;
   delaySeverity: DelaySeverity;
   mode: TransitMode;
+  routeShortName: string;
 }
 
 export interface ModeStats {

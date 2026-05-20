@@ -1,4 +1,5 @@
 .claude/
+.superpowers/
 data/
 node_modules/
 docs/deploy-guides.md
