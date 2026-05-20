@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 
 const routesCsv = fs.readFileSync(
-  path.join(process.cwd(), '../data/gtfs/routes.txt'),
+  path.join(__dirname, '../../data/gtfs/routes.txt'),
   'utf-8'
 );
 
@@ -34,7 +34,7 @@ ${entries}
 };
 `;
 
-const outDir = path.join(process.cwd(), 'src/poller');
+const outDir = path.join(__dirname, '../src/poller');
 fs.mkdirSync(outDir, { recursive: true });
 const outPath = path.join(outDir, 'gtfsData.ts');
 fs.writeFileSync(outPath, output, 'utf-8');
