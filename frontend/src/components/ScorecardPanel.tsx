@@ -18,7 +18,7 @@ export function ScorecardPanel() {
   const modes: TransitMode[] = ['bus', 'train', 'ferry'];
 
   return (
-    <section className="shrink-0 p-4 border-b border-gray-700">
+    <section className="flex-[3] overflow-y-auto p-4 border-b border-gray-700">
       <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">
         Network Scorecard
       </h2>

@@ -9,7 +9,7 @@ export function LeagueTablePanel() {
   const routes = snapshot?.worstRoutes ?? [];
 
   return (
-    <section className="p-4 border-b border-gray-700 overflow-y-auto" style={{ maxHeight: '260px' }}>
+    <section className="flex-[4] p-4 border-b border-gray-700 overflow-y-auto">
       <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">
         Worst Routes
       </h2>
