@@ -10,7 +10,7 @@ const SEVERITY_COLOUR: Record<DelaySeverity, string> = {
   green: '#22c55e',
   amber: '#f59e0b',
   red:   '#ef4444',
-  none:  '#6b7280',
+  none:  '#94a3b8',
 };
 
 const MODE_LABEL: Record<TransitMode, string> = {
