@@ -28,7 +28,7 @@ export function ScorecardPanel() {
           const pct = stats?.percentOnTime ?? 0;
           return (
             <div key={mode} className="flex-1 text-center">
-              <div className={`text-[clamp(1.5rem,5vh,5rem)] font-bold ${stats ? pctColour(pct) : 'text-gray-400'}`}>
+              <div className={`text-[clamp(1.5rem,5vh,5rem)] font-bold ${stats ? pctColour(pct) : 'text-gray-300'}`}>
                 {stats ? `${pct}%` : '—'}
               </div>
               <div className="text-xs text-gray-400 mt-1">{MODE_LABELS[mode]}</div>
