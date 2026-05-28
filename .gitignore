@@ -2,5 +2,9 @@
 .superpowers/
 data/
 node_modules/
-docs/deploy-guides.md
 infra/cdk.out/
+
+docs/*
+!docs/REQUIREMENTS.md
+!docs/superpowers/
+!docs/superpowers/**
