@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Tooltip, Popup } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Tooltip, useMapEvents } from 'react-leaflet';
 import { divIcon } from 'leaflet';
 import { useSnapshot } from '../context/SnapshotContext';
 import { RouteSearchOverlay } from './RouteSearchOverlay';
@@ -56,10 +56,16 @@ function makeIcon(mode: TransitMode, severity: DelaySeverity): ReturnType<typeof
   return icon;
 }
 
+function MapClickHandler({ onMapClick }: { onMapClick: () => void }) {
+  useMapEvents({ click: onMapClick });
+  return null;
+}
+
 export function MapPanel() {
   const { snapshot } = useSnapshot();
   const vehicles = snapshot?.vehicles ?? [];
   const [routeFilter, setRouteFilter] = useState<string | null>(null);
+  const [pinnedId, setPinnedId] = useState<string | null>(null);
 
   const routeOptions = useMemo(
     () => [...new Set(vehicles.map(v => v.routeShortName))].sort(),
@@ -81,17 +87,24 @@ export function MapPanel() {
           maxZoom={20}
           className="brightness-map"
         />
+        <MapClickHandler onMapClick={() => setPinnedId(null)} />
         {vehicles.map(v => (
           <Marker
             key={v.id}
             position={[v.lat, v.lng]}
             icon={makeIcon(v.mode, v.delaySeverity)}
             opacity={routeFilter && v.routeShortName !== routeFilter ? 0.15 : 1}
+            eventHandlers={{
+              click: (e) => {
+                e.originalEvent.stopPropagation();
+                setPinnedId(prev => prev === v.id ? null : v.id);
+              },
+            }}
           >
-            <Tooltip>
-              {MODE_LABEL[v.mode]} · {SEVERITY_LABEL[v.delaySeverity]}
-            </Tooltip>
-            <Popup>
+            <Tooltip
+              key={pinnedId === v.id ? 'pinned' : 'hover'}
+              permanent={pinnedId === v.id}
+            >
               <div style={{ minWidth: 90 }}>
                 <div style={{ fontWeight: 700, fontSize: 14, color: SEVERITY_COLOUR[v.delaySeverity] }}>
                   {v.routeShortName}
@@ -100,7 +113,7 @@ export function MapPanel() {
                   {MODE_LABEL[v.mode]} · {SEVERITY_LABEL[v.delaySeverity]}
                 </div>
               </div>
-            </Popup>
+            </Tooltip>
           </Marker>
         ))}
       </MapContainer>
