@@ -19,6 +19,28 @@ body,
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
 }
 
+/* Dark-theme overrides for Leaflet tooltips */
+.leaflet-tooltip {
+  background: #1f2937;
+  color: #f3f4f6;
+  border: 1px solid #374151;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
+  padding: 6px 8px;
+}
+
+.leaflet-tooltip-top::before {
+  border-top-color: #1f2937;
+}
+.leaflet-tooltip-bottom::before {
+  border-bottom-color: #1f2937;
+}
+.leaflet-tooltip-left::before {
+  border-left-color: #1f2937;
+}
+.leaflet-tooltip-right::before {
+  border-right-color: #1f2937;
+}
+
 .brightness-map img {
   filter: brightness(2.5);
 }
