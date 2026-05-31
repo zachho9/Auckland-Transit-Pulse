@@ -5,7 +5,7 @@ export function AlertsPanel() {
   const alerts = snapshot?.alerts ?? [];
 
   return (
-    <section className="flex-[3] p-4 overflow-y-auto">
+    <section className="h-full p-4 overflow-y-auto">
       <h2 style={{ fontSize: '0.62rem', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.85rem' }}>
         Service Alerts
       </h2>

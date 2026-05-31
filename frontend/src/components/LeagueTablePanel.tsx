@@ -10,7 +10,7 @@ export function LeagueTablePanel() {
   const maxDelay = routes.length > 0 ? Math.max(...routes.map(r => r.avgDelayMinutes)) : 1;
 
   return (
-    <section className="flex-[4] p-4 overflow-y-auto" style={{ borderBottom: '1px solid var(--border-col)' }}>
+    <section className="h-full p-4 overflow-y-auto" style={{ borderBottom: '1px solid var(--border-col)' }}>
       <h2 style={{ fontSize: '0.62rem', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.85rem' }}>
         Worst Routes
       </h2>
@@ -29,8 +29,8 @@ export function LeagueTablePanel() {
                   className="absolute inset-0 rounded"
                   style={{
                     width: `${pct}%`,
-                    background: `${colour}14`,
-                    borderLeft: `2px solid ${colour}40`,
+                    background: `${colour}33`,
+                    borderLeft: `2px solid ${colour}99`,
                     pointerEvents: 'none',
                   }}
                 />
