@@ -44,8 +44,19 @@ export function RouteSearchOverlay({ options, onSelect }: Props) {
 
   return (
     <div ref={rootRef} className="relative w-44">
-      <div className="flex items-center bg-gray-800 border border-gray-700 rounded px-2 py-1.5 gap-1.5 shadow-lg">
-        <svg aria-hidden="true" className="text-gray-400 shrink-0" width="12" height="12" viewBox="0 0 16 16" fill="currentColor">
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          background: 'var(--bg-elevated)',
+          border: '1px solid var(--border-col)',
+          borderRadius: '6px',
+          padding: '6px 10px',
+          gap: '6px',
+          boxShadow: '0 4px 20px rgba(0,0,0,0.6)',
+        }}
+      >
+        <svg style={{ color: 'var(--text-secondary)', flexShrink: 0 }} width="11" height="11" viewBox="0 0 16 16" fill="currentColor">
           <path d="M11.742 10.344a6.5 6.5 0 1 0-1.397 1.398h-.001c.03.04.062.078.098.115l3.85 3.85a1 1 0 0 0 1.415-1.414l-3.85-3.85a1.007 1.007 0 0 0-.115-.099zm-5.242 1.656a5.5 5.5 0 1 1 0-11 5.5 5.5 0 0 1 0 11z"/>
         </svg>
         <input
@@ -54,12 +65,20 @@ export function RouteSearchOverlay({ options, onSelect }: Props) {
           onChange={handleChange}
           onFocus={() => text.length > 0 && setOpen(true)}
           placeholder="Search route…"
-          className="bg-transparent text-white text-xs outline-none flex-1 min-w-0 placeholder-gray-500"
+          style={{
+            background: 'transparent',
+            color: 'var(--text-primary)',
+            fontSize: '0.7rem',
+            outline: 'none',
+            flex: 1,
+            minWidth: 0,
+            fontFamily: "'Barlow', sans-serif",
+          }}
         />
         {text && (
           <button
             onClick={handleClear}
-            className="text-gray-400 hover:text-white text-sm leading-none shrink-0"
+            style={{ color: 'var(--text-secondary)', fontSize: '1rem', lineHeight: 1, flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
             aria-label="Clear search"
           >
             ×
@@ -67,11 +86,38 @@ export function RouteSearchOverlay({ options, onSelect }: Props) {
         )}
       </div>
       {open && filtered.length > 0 && (
-        <ul className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded overflow-hidden shadow-lg">
+        <ul
+          style={{
+            position: 'absolute',
+            top: 'calc(100% + 4px)',
+            left: 0,
+            right: 0,
+            background: 'var(--bg-elevated)',
+            border: '1px solid var(--border-col)',
+            borderRadius: '6px',
+            overflow: 'hidden',
+            boxShadow: '0 8px 28px rgba(0,0,0,0.7)',
+            listStyle: 'none',
+            margin: 0,
+            padding: 0,
+          }}
+        >
           {filtered.map(route => (
             <li key={route}>
               <button
-                className="w-full text-left px-3 py-1.5 text-xs text-gray-200 hover:bg-gray-700 cursor-pointer"
+                className="route-item"
+                style={{
+                  width: '100%',
+                  textAlign: 'left',
+                  padding: '6px 12px',
+                  fontSize: '0.7rem',
+                  color: 'var(--text-primary)',
+                  background: 'transparent',
+                  border: 'none',
+                  cursor: 'pointer',
+                  fontFamily: "'Barlow', sans-serif",
+                  display: 'block',
+                }}
                 onClick={() => handleSelect(route)}
               >
                 {route}

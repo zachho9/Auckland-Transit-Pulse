@@ -2,6 +2,29 @@
 @tailwind components;
 @tailwind utilities;
 
+:root,
+[data-theme="dark"] {
+  --bg-base:        #07111f;
+  --bg-surface:     #0c1a2e;
+  --bg-elevated:    #112235;
+  --border-col:     #1a304a;
+  --accent:         #0bb5d8;
+  --text-primary:   #e2eaf4;
+  --text-secondary: #4e7a9e;
+  --text-muted:     #253d54;
+}
+
+[data-theme="light"] {
+  --bg-base:        #edf1f7;
+  --bg-surface:     #ffffff;
+  --bg-elevated:    #f4f7fb;
+  --border-col:     #c5d5e5;
+  --accent:         #0899b8;
+  --text-primary:   #0c1d2c;
+  --text-secondary: #3d5f78;
+  --text-muted:     #8aaccb;
+}
+
 html,
 body,
 #root {
@@ -9,38 +32,52 @@ body,
   margin: 0;
   padding: 0;
   overflow: hidden;
+  font-family: 'Barlow', sans-serif;
+  background: var(--bg-base);
 }
 
-/* Dark-theme overrides for Leaflet popups */
+::placeholder {
+  color: var(--text-secondary);
+  opacity: 1;
+}
+
+/* Leaflet tooltip dark theme */
+.leaflet-tooltip {
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-col);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-family: 'Barlow', sans-serif;
+}
+.leaflet-tooltip-top::before    { border-top-color:    var(--bg-elevated); }
+.leaflet-tooltip-bottom::before { border-bottom-color: var(--bg-elevated); }
+.leaflet-tooltip-left::before   { border-left-color:   var(--bg-elevated); }
+.leaflet-tooltip-right::before  { border-right-color:  var(--bg-elevated); }
+
+/* Leaflet popup dark theme */
 .leaflet-popup-content-wrapper,
 .leaflet-popup-tip {
-  background: #1f2937;
-  color: #f3f4f6;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-}
-
-/* Dark-theme overrides for Leaflet tooltips */
-.leaflet-tooltip {
-  background: #1f2937;
-  color: #f3f4f6;
-  border: 1px solid #374151;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.6);
-  padding: 6px 8px;
-}
-
-.leaflet-tooltip-top::before {
-  border-top-color: #1f2937;
-}
-.leaflet-tooltip-bottom::before {
-  border-bottom-color: #1f2937;
-}
-.leaflet-tooltip-left::before {
-  border-left-color: #1f2937;
-}
-.leaflet-tooltip-right::before {
-  border-right-color: #1f2937;
+  background: var(--bg-elevated);
+  color: var(--text-primary);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.7);
 }
 
 .brightness-map img {
   filter: brightness(2.5);
+}
+
+/* Dropdown hover */
+.route-item:hover {
+  background: var(--bg-surface) !important;
+}
+
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1;   transform: scale(1);    }
+  50%       { opacity: 0.3; transform: scale(0.65); }
+}
+
+.pulse-dot {
+  animation: pulse-dot 2.4s ease-in-out infinite;
 }

@@ -5,6 +5,7 @@ import { useSnapshot } from '../context/SnapshotContext';
 import { RouteSearchOverlay } from './RouteSearchOverlay';
 import { ModeFilterBar } from './ModeFilterBar';
 import type { DelaySeverity, TransitMode } from 'shared/types';
+import type { Theme } from '../App';
 import 'leaflet/dist/leaflet.css';
 
 const SEVERITY_COLOUR: Record<DelaySeverity, string> = {
@@ -25,6 +26,11 @@ const SEVERITY_LABEL: Record<DelaySeverity, string> = {
   amber: 'delayed',
   red:   'delayed',
   none:  'no data',
+};
+
+const TILE_URLS: Record<Theme, string> = {
+  dark:  'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+  light: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
 };
 
 const AUCKLAND_CENTRE: [number, number] = [-36.86, 174.76];
@@ -62,7 +68,11 @@ function MapClickHandler({ onMapClick }: { onMapClick: () => void }) {
   return null;
 }
 
-export function MapPanel() {
+interface Props {
+  theme: Theme;
+}
+
+export function MapPanel({ theme }: Props) {
   const { snapshot } = useSnapshot();
   const vehicles = snapshot?.vehicles ?? [];
   const [routeFilter, setRouteFilter] = useState<string | null>(null);
@@ -93,23 +103,29 @@ export function MapPanel() {
         zoomControl
       >
         <TileLayer
-          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          key={theme}
+          url={TILE_URLS[theme]}
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
           subdomains="abcd"
           maxZoom={20}
-          className="brightness-map"
+          className={theme === 'dark' ? 'brightness-map' : undefined}
         />
         <MapClickHandler onMapClick={() => setPinnedId(null)} />
-        {vehicles.map(v => (
+        {vehicles.map(v => {
+          const isFiltered = Boolean(
+            (routeFilter && v.routeShortName !== routeFilter) || !activeModes.has(v.mode)
+          );
+          const isPinned = pinnedId === v.id && !isFiltered;
+          return (
           <Marker
             key={v.id}
             position={[v.lat, v.lng]}
             icon={makeIcon(v.mode, v.delaySeverity)}
-            opacity={
-              (routeFilter && v.routeShortName !== routeFilter) || !activeModes.has(v.mode)
-                ? 0.15
-                : 1
-            }
+            opacity={isFiltered ? 0 : 1}
+            ref={(marker) => {
+              const el = marker?.getElement();
+              if (el) el.style.pointerEvents = isFiltered ? 'none' : '';
+            }}
             eventHandlers={{
               click: (e) => {
                 e.originalEvent.stopPropagation();
@@ -118,20 +134,21 @@ export function MapPanel() {
             }}
           >
             <Tooltip
-              key={pinnedId === v.id ? 'pinned' : 'hover'}
-              permanent={pinnedId === v.id}
+              key={isPinned ? 'pinned' : 'hover'}
+              permanent={isPinned}
             >
               <div style={{ minWidth: 90 }}>
-                <div style={{ fontWeight: 700, fontSize: 14, color: SEVERITY_COLOUR[v.delaySeverity] }}>
+                <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 15, color: SEVERITY_COLOUR[v.delaySeverity] }}>
                   {v.routeShortName}
                 </div>
-                <div style={{ color: '#9ca3af', fontSize: 12, marginTop: 2 }}>
+                <div style={{ fontSize: 12, marginTop: 2, color: 'var(--text-secondary)' }}>
                   {MODE_LABEL[v.mode]} · {SEVERITY_LABEL[v.delaySeverity]}
                 </div>
               </div>
             </Tooltip>
           </Marker>
-        ))}
+          );
+        })}
       </MapContainer>
       <div className="absolute top-4 right-4 z-[1000] flex flex-col items-end gap-2">
         <RouteSearchOverlay options={routeOptions} onSelect={setRouteFilter} />
