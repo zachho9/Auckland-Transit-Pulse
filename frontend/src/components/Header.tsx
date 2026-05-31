@@ -1,6 +1,36 @@
 import { useSnapshot } from '../context/SnapshotContext';
+import type { Theme } from '../App';
 
-export function Header() {
+interface Props {
+  theme: Theme;
+  onToggleTheme: () => void;
+}
+
+function SunIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="5" />
+      <line x1="12" y1="1"     x2="12" y2="3" />
+      <line x1="12" y1="21"    x2="12" y2="23" />
+      <line x1="4.22" y1="4.22"   x2="5.64"  y2="5.64" />
+      <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+      <line x1="1"  y1="12"   x2="3"  y2="12" />
+      <line x1="21" y1="12"   x2="23" y2="12" />
+      <line x1="4.22"  y1="19.78" x2="5.64"  y2="18.36" />
+      <line x1="18.36" y1="5.64"  x2="19.78" y2="4.22" />
+    </svg>
+  );
+}
+
+function MoonIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+    </svg>
+  );
+}
+
+export function Header({ theme, onToggleTheme }: Props) {
   const { snapshot, isStale, hasError, isLoading } = useSnapshot();
 
   const lastUpdated = snapshot
@@ -9,21 +39,60 @@ export function Header() {
     ? 'Loading…'
     : '—';
 
+  const dotColour = snapshot && !hasError ? 'var(--accent)' : '#ef4444';
+
   return (
-    <header className="shrink-0 border-b border-gray-700">
+    <header style={{ borderBottom: '1px solid var(--border-col)', background: 'var(--bg-surface)' }}>
       <div className="flex items-center justify-between px-6 py-3">
-        <h1 className="text-lg font-semibold text-white tracking-wide">
-          Auckland Transit Pulse
+        <h1 style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1.2rem', fontWeight: 700, letterSpacing: '0.06em', color: 'var(--text-primary)', margin: 0 }}>
+          AUCKLAND TRANSIT{' '}
+          <span style={{ color: 'var(--accent)' }}>PULSE</span>
         </h1>
-        <span className="text-sm text-gray-400">Last updated: {lastUpdated}</span>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-2">
+            <div
+              className="pulse-dot rounded-full shrink-0"
+              style={{ width: 7, height: 7, background: dotColour }}
+            />
+            <span style={{ fontSize: '0.72rem', color: 'var(--text-secondary)', fontFamily: "'Barlow', sans-serif" }}>
+              {lastUpdated}
+            </span>
+          </div>
+          <button
+            onClick={onToggleTheme}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            style={{
+              background: 'var(--bg-elevated)',
+              border: '1px solid var(--border-col)',
+              borderRadius: '6px',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              padding: '5px 7px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'color 0.15s, border-color 0.15s',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.color = 'var(--accent)')}
+            onMouseLeave={e => (e.currentTarget.style.color = 'var(--text-secondary)')}
+          >
+            {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+          </button>
+        </div>
       </div>
       {hasError && (
-        <div className="bg-red-900/50 text-red-300 text-sm px-6 py-1">
+        <div
+          className="px-6 py-1 text-sm"
+          style={{ background: 'rgba(239,68,68,0.12)', color: '#ef4444', borderTop: '1px solid rgba(239,68,68,0.2)' }}
+        >
           Connection lost — retrying
         </div>
       )}
       {!hasError && isStale && (
-        <div className="bg-amber-900/50 text-amber-300 text-sm px-6 py-1">
+        <div
+          className="px-6 py-1 text-sm"
+          style={{ background: 'rgba(245,158,11,0.12)', color: '#d97706', borderTop: '1px solid rgba(245,158,11,0.2)' }}
+        >
           Data may be stale
         </div>
       )}

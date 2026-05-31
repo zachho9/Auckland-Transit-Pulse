@@ -6,24 +6,29 @@ export function AlertsPanel() {
 
   return (
     <section className="flex-[3] p-4 overflow-y-auto">
-      <h2 className="text-xs font-semibold uppercase tracking-widest text-gray-500 mb-3">
+      <h2 style={{ fontSize: '0.62rem', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.85rem' }}>
         Service Alerts
       </h2>
       {alerts.length === 0 ? (
-        <p className="text-sm text-gray-600">
+        <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
           {snapshot ? 'No active alerts' : 'Loading…'}
         </p>
       ) : (
         <ul className="space-y-3">
           {alerts.map(a => (
-            <li key={a.id} className="flex items-start gap-2 text-sm">
-              <span className="text-amber-400 mt-0.5 shrink-0">⚠</span>
-              <div>
-                <div className="text-gray-200 font-medium leading-snug">{a.header}</div>
-                {a.description && (
-                  <div className="text-gray-400 text-xs mt-0.5 leading-snug">{a.description}</div>
-                )}
+            <li
+              key={a.id}
+              className="pl-3 py-1"
+              style={{ borderLeft: '2px solid #f59e0b', fontSize: '0.78rem' }}
+            >
+              <div style={{ color: 'var(--text-primary)', fontWeight: 500, lineHeight: 1.35 }}>
+                {a.header}
               </div>
+              {a.description && (
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', marginTop: '0.2rem', lineHeight: 1.45 }}>
+                  {a.description}
+                </div>
+              )}
             </li>
           ))}
         </ul>
