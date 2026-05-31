@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, Tooltip, useMapEvents } from 'react-le
 import { divIcon } from 'leaflet';
 import { useSnapshot } from '../context/SnapshotContext';
 import { RouteSearchOverlay } from './RouteSearchOverlay';
+import { ModeFilterBar } from './ModeFilterBar';
 import type { DelaySeverity, TransitMode } from 'shared/types';
 import 'leaflet/dist/leaflet.css';
 
@@ -66,11 +67,22 @@ export function MapPanel() {
   const vehicles = snapshot?.vehicles ?? [];
   const [routeFilter, setRouteFilter] = useState<string | null>(null);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
+  const [activeModes, setActiveModes] = useState<Set<TransitMode>>(
+    new Set(['bus', 'train', 'ferry'])
+  );
 
   const routeOptions = useMemo(
     () => [...new Set(vehicles.map(v => v.routeShortName))].sort(),
     [vehicles]
   );
+
+  function toggleMode(mode: TransitMode) {
+    setActiveModes(prev => {
+      const next = new Set(prev);
+      next.has(mode) ? next.delete(mode) : next.add(mode);
+      return next;
+    });
+  }
 
   return (
     <div className="h-full w-full relative">
@@ -93,7 +105,11 @@ export function MapPanel() {
             key={v.id}
             position={[v.lat, v.lng]}
             icon={makeIcon(v.mode, v.delaySeverity)}
-            opacity={routeFilter && v.routeShortName !== routeFilter ? 0.15 : 1}
+            opacity={
+              (routeFilter && v.routeShortName !== routeFilter) || !activeModes.has(v.mode)
+                ? 0.15
+                : 1
+            }
             eventHandlers={{
               click: (e) => {
                 e.originalEvent.stopPropagation();
@@ -117,8 +133,9 @@ export function MapPanel() {
           </Marker>
         ))}
       </MapContainer>
-      <div className="absolute top-4 right-4 z-[1000]">
+      <div className="absolute top-4 right-4 z-[1000] flex flex-col items-end gap-2">
         <RouteSearchOverlay options={routeOptions} onSelect={setRouteFilter} />
+        <ModeFilterBar activeModes={activeModes} onToggle={toggleMode} />
       </div>
     </div>
   );
