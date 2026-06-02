@@ -1,5 +1,5 @@
-.claude/
-.superpowers/
+.*/
+dist/
 data/
 node_modules/
 infra/cdk.out/
