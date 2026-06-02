@@ -72,7 +72,7 @@ export function App() {
     document.body.style.userSelect = 'none';
 
     function onMouseMove(ev: MouseEvent) {
-      const rect = container.getBoundingClientRect();
+      const rect = container!.getBoundingClientRect();
       const pct = Math.min(Math.max(((ev.clientY - rect.top) / rect.height) * 100, 20), 80);
       setRightSplit(pct);
     }
