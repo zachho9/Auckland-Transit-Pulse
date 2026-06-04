@@ -54,7 +54,12 @@ async function main() {
   const gtfsDir = path.join(__dirname, '../../data/gtfs');
 
   console.log('Reading trips.txt...');
-  const trips = parseCsv(fs.readFileSync(path.join(gtfsDir, 'trips.txt'), 'utf-8'));
+  let trips: Record<string, string>[];
+  try {
+    trips = parseCsv(fs.readFileSync(path.join(gtfsDir, 'trips.txt'), 'utf-8'));
+  } catch {
+    throw new Error(`Could not read trips.txt from ${gtfsDir}. Run this script from the repo root.`);
+  }
 
   // route_id → { directionId → shape_id } (first trip wins per direction)
   const routeDirectionShapeMap = new Map<string, Map<number, string>>();
@@ -71,7 +76,12 @@ async function main() {
 
   // shape_id → ordered [lat, lng] points
   console.log('Reading shapes.txt (565k rows — may take a moment)...');
-  const shapesRaw = fs.readFileSync(path.join(gtfsDir, 'shapes.txt'), 'utf-8');
+  let shapesRaw: string;
+  try {
+    shapesRaw = fs.readFileSync(path.join(gtfsDir, 'shapes.txt'), 'utf-8');
+  } catch {
+    throw new Error(`Could not read shapes.txt from ${gtfsDir}. Run this script from the repo root.`);
+  }
   const shapeMap = new Map<string, Array<{ seq: number; lat: number; lng: number }>>();
   const shapeLines = shapesRaw.trim().split('\n');
   const shapeHeaders = shapeLines[0].split(',').map(h => h.trim().replace(/^﻿/, ''));
@@ -79,6 +89,9 @@ async function main() {
   const idxLat      = shapeHeaders.indexOf('shape_pt_lat');
   const idxLng      = shapeHeaders.indexOf('shape_pt_lon');
   const idxSeq      = shapeHeaders.indexOf('shape_pt_sequence');
+  if (idxShapeId < 0 || idxLat < 0 || idxLng < 0 || idxSeq < 0) {
+    throw new Error(`Missing required columns in shapes.txt. Found: ${shapeHeaders.join(', ')}`);
+  }
   for (let i = 1; i < shapeLines.length; i++) {
     const cols = shapeLines[i].split(',');
     const shapeId = cols[idxShapeId]?.trim();
@@ -111,14 +124,18 @@ async function main() {
     if (directions.length === 0) continue;
 
     const shape: RouteShape = { routeId, directions };
-    await s3.send(new PutObjectCommand({
-      Bucket: BUCKET_NAME,
-      Key: `shapes/${routeId}.json`,
-      Body: JSON.stringify(shape),
-      ContentType: 'application/json',
-    }));
-    uploaded++;
-    if (uploaded % 50 === 0) console.log(`  ${uploaded}/${routeIds.length} uploaded`);
+    try {
+      await s3.send(new PutObjectCommand({
+        Bucket: BUCKET_NAME,
+        Key: `shapes/${routeId}.json`,
+        Body: JSON.stringify(shape),
+        ContentType: 'application/json',
+      }));
+      uploaded++;
+      if (uploaded % 50 === 0) console.log(`  ${uploaded}/${routeIds.length} uploaded`);
+    } catch (err) {
+      console.error(`  Failed to upload shapes/${routeId}.json:`, err);
+    }
   }
 
   console.log(`Done. ${uploaded} shape files uploaded to s3://${BUCKET_NAME}/shapes/`);
