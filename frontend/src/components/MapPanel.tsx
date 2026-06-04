@@ -1,10 +1,11 @@
-import { useState, useMemo } from 'react';
-import { MapContainer, TileLayer, Marker, Tooltip, useMapEvents } from 'react-leaflet';
+import { useState, useMemo, useEffect } from 'react';
+import { MapContainer, TileLayer, Marker, Tooltip, Polyline, useMapEvents, useMap } from 'react-leaflet';
 import { divIcon } from 'leaflet';
 import { useSnapshot } from '../context/SnapshotContext';
+import { useRouteSelection } from '../context/RouteSelectionContext';
 import { RouteSearchOverlay } from './RouteSearchOverlay';
 import { ModeFilterBar } from './ModeFilterBar';
-import type { DelaySeverity, TransitMode } from 'shared/types';
+import type { DelaySeverity, TransitMode, RouteShape } from 'shared/types';
 import type { Theme } from '../App';
 import 'leaflet/dist/leaflet.css';
 
@@ -16,16 +17,11 @@ const SEVERITY_COLOUR: Record<DelaySeverity, string> = {
 };
 
 const MODE_LABEL: Record<TransitMode, string> = {
-  bus:   'Bus',
-  train: 'Train',
-  ferry: 'Ferry',
+  bus: 'Bus', train: 'Train', ferry: 'Ferry',
 };
 
 const SEVERITY_LABEL: Record<DelaySeverity, string> = {
-  green: 'on time',
-  amber: 'delayed',
-  red:   'delayed',
-  none:  'no data',
+  green: 'on time', amber: 'delayed', red: 'delayed', none: 'no data',
 };
 
 const TILE_URLS: Record<Theme, string> = {
@@ -34,6 +30,7 @@ const TILE_URLS: Record<Theme, string> = {
 };
 
 const AUCKLAND_CENTRE: [number, number] = [-36.86, 174.76];
+const SHAPES_URL = `${((import.meta.env.VITE_API_URL as string) ?? '').replace(/\/$/, '')}/shapes`;
 
 const _iconCache = new Map<string, ReturnType<typeof divIcon>>();
 
@@ -68,23 +65,78 @@ function MapClickHandler({ onMapClick }: { onMapClick: () => void }) {
   return null;
 }
 
+function RouteFitter({ allPoints }: { allPoints: [number, number][] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (allPoints.length > 0) {
+      map.fitBounds(allPoints, { padding: [30, 30] });
+    }
+  }, [allPoints, map]);
+  return null;
+}
+
+function delayMinutesToColour(avgDelayMinutes: number): string {
+  if (avgDelayMinutes <= 2) return '#22c55e';
+  if (avgDelayMinutes <= 5) return '#f59e0b';
+  return '#ef4444';
+}
+
 interface Props {
   theme: Theme;
 }
 
 export function MapPanel({ theme }: Props) {
   const { snapshot } = useSnapshot();
+  const { selectedRouteId, selectRoute } = useRouteSelection();
   const vehicles = snapshot?.vehicles ?? [];
+
   const [routeFilter, setRouteFilter] = useState<string | null>(null);
   const [pinnedId, setPinnedId] = useState<string | null>(null);
   const [activeModes, setActiveModes] = useState<Set<TransitMode>>(
     new Set(['bus', 'train', 'ferry'])
   );
+  const [routeShape, setRouteShape] = useState<RouteShape | null>(null);
 
   const routeOptions = useMemo(
     () => [...new Set(vehicles.map(v => v.routeShortName))].sort(),
     [vehicles]
   );
+
+  const routeNameToId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const v of vehicles) {
+      if (!map.has(v.routeShortName)) map.set(v.routeShortName, v.routeId);
+    }
+    return map;
+  }, [vehicles]);
+
+  // Fetch shape when a route is selected
+  useEffect(() => {
+    if (!selectedRouteId) {
+      setRouteShape(null);
+      return;
+    }
+    if (import.meta.env.VITE_MOCK === 'true') return;
+    const controller = new AbortController();
+    fetch(`${SHAPES_URL}/${encodeURIComponent(selectedRouteId)}`, { signal: controller.signal })
+      .then(r => r.ok ? r.json() : null)
+      .then((data: RouteShape | null) => setRouteShape(data))
+      .catch(e => { if ((e as Error).name !== 'AbortError') setRouteShape(null); });
+    return () => controller.abort();
+  }, [selectedRouteId]);
+
+  const routeAvgDelay = snapshot?.worstRoutes.find(r => r.routeId === selectedRouteId)?.avgDelayMinutes ?? 0;
+  const polylineColour = delayMinutesToColour(routeAvgDelay);
+
+  const allShapePoints = useMemo<[number, number][]>(
+    () => routeShape ? routeShape.directions.flatMap(d => d.points) : [],
+    [routeShape],
+  );
+
+  function handleMapClick() {
+    selectRoute(null);
+    setPinnedId(null);
+  }
 
   function toggleMode(mode: TransitMode) {
     setActiveModes(prev => {
@@ -110,48 +162,68 @@ export function MapPanel({ theme }: Props) {
           maxZoom={20}
           className={theme === 'dark' ? 'brightness-map' : undefined}
         />
-        <MapClickHandler onMapClick={() => setPinnedId(null)} />
+
+        <MapClickHandler onMapClick={handleMapClick} />
+
+        {routeShape && <RouteFitter allPoints={allShapePoints} />}
+
+        {routeShape?.directions.map(d => (
+          <Polyline
+            key={d.directionId}
+            positions={d.points}
+            pathOptions={{ color: polylineColour, weight: 4, opacity: 0.85 }}
+          />
+        ))}
+
         {vehicles.map(v => {
-          const isFiltered = Boolean(
-            (routeFilter && v.routeShortName !== routeFilter) || !activeModes.has(v.mode)
-          );
+          const isFiltered = selectedRouteId
+            ? v.routeId !== selectedRouteId
+            : (routeFilter ? v.routeShortName !== routeFilter : false) || !activeModes.has(v.mode);
           const isPinned = pinnedId === v.id && !isFiltered;
+
           return (
-          <Marker
-            key={v.id}
-            position={[v.lat, v.lng]}
-            icon={makeIcon(v.mode, v.delaySeverity)}
-            opacity={isFiltered ? 0 : 1}
-            ref={(marker) => {
-              const el = marker?.getElement();
-              if (el) el.style.pointerEvents = isFiltered ? 'none' : '';
-            }}
-            eventHandlers={{
-              click: (e) => {
-                e.originalEvent.stopPropagation();
-                setPinnedId(prev => prev === v.id ? null : v.id);
-              },
-            }}
-          >
-            <Tooltip
-              key={isPinned ? 'pinned' : 'hover'}
-              permanent={isPinned}
+            <Marker
+              key={v.id}
+              position={[v.lat, v.lng]}
+              icon={makeIcon(v.mode, v.delaySeverity)}
+              opacity={isFiltered ? 0 : 1}
+              ref={(marker) => {
+                const el = marker?.getElement();
+                if (el) el.style.pointerEvents = isFiltered ? 'none' : '';
+              }}
+              eventHandlers={{
+                click: (e) => {
+                  e.originalEvent.stopPropagation();
+                  const newRouteId = v.routeId === selectedRouteId ? null : v.routeId;
+                  selectRoute(newRouteId);
+                  setPinnedId(newRouteId ? v.id : null);
+                },
+              }}
             >
-              <div style={{ minWidth: 90 }}>
-                <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 15, color: SEVERITY_COLOUR[v.delaySeverity] }}>
-                  {v.routeShortName}
+              <Tooltip key={isPinned ? 'pinned' : 'hover'} permanent={isPinned}>
+                <div style={{ minWidth: 90 }}>
+                  <div style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: 15, color: SEVERITY_COLOUR[v.delaySeverity] }}>
+                    {v.routeShortName}
+                  </div>
+                  <div style={{ fontSize: 12, marginTop: 2, color: 'var(--text-secondary)' }}>
+                    {MODE_LABEL[v.mode]} · {SEVERITY_LABEL[v.delaySeverity]}
+                  </div>
                 </div>
-                <div style={{ fontSize: 12, marginTop: 2, color: 'var(--text-secondary)' }}>
-                  {MODE_LABEL[v.mode]} · {SEVERITY_LABEL[v.delaySeverity]}
-                </div>
-              </div>
-            </Tooltip>
-          </Marker>
+              </Tooltip>
+            </Marker>
           );
         })}
       </MapContainer>
+
       <div className="absolute top-4 right-4 z-[1000] flex flex-col items-end gap-2">
-        <RouteSearchOverlay options={routeOptions} onSelect={setRouteFilter} />
+        <RouteSearchOverlay
+          options={routeOptions}
+          onSelect={(name) => {
+            setRouteFilter(name);
+            const id = name ? routeNameToId.get(name) : null;
+            selectRoute(id ?? null);
+          }}
+        />
         <ModeFilterBar activeModes={activeModes} onToggle={toggleMode} />
       </div>
     </div>

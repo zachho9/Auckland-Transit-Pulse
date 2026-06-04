@@ -6,8 +6,11 @@ import {
   modeFromRouteType,
   parseAlerts,
   parseVehicles,
+  calculateNetworkAvgDelaySeconds,
+  buildDailyStats,
 } from '../src/poller/aggregator';
 import type { AtEntity } from '../src/poller/atTypes';
+import type { Scorecard, DailyStats, WorstRoute } from '../../shared/types';
 
 jest.mock('../src/poller/gtfsData', () => ({
   routeMap: {
@@ -77,7 +80,7 @@ describe('parseVehicles', () => {
     }];
     const result = parseVehicles(entities, tripDelayMap);
     expect(result).toHaveLength(1);
-    expect(result[0]).toEqual({ id: 'v1', lat: -36.8, lng: 174.7, delaySeverity: 'amber', mode: 'bus', routeShortName: '274' });
+    expect(result[0]).toEqual({ id: 'v1', lat: -36.8, lng: 174.7, delaySeverity: 'amber', mode: 'bus', routeShortName: '274', routeId: 'route-bus' });
   });
 
   it('assigns red severity for delay > 300 seconds', () => {
@@ -90,6 +93,7 @@ describe('parseVehicles', () => {
     }];
     expect(parseVehicles(entities, tripDelayMap)[0].delaySeverity).toBe('red');
     expect(parseVehicles(entities, tripDelayMap)[0].routeShortName).toBe('EAST');
+    expect(parseVehicles(entities, tripDelayMap)[0].routeId).toBe('route-train');
   });
 
   it('assigns none severity when no trip delay data exists for the vehicle', () => {
@@ -103,6 +107,7 @@ describe('parseVehicles', () => {
     expect(parseVehicles(entities, tripDelayMap)[0].delaySeverity).toBe('none');
     expect(parseVehicles(entities, tripDelayMap)[0].mode).toBe('ferry');
     expect(parseVehicles(entities, tripDelayMap)[0].routeShortName).toBe('FERRY1');
+    expect(parseVehicles(entities, tripDelayMap)[0].routeId).toBe('route-ferry');
   });
 
   it('skips vehicles with no position', () => {
@@ -176,9 +181,9 @@ describe('parseAlerts', () => {
 describe('aggregateScorecard', () => {
   it('calculates per-mode active count and on-time percentage', () => {
     const vehicles = [
-      { id: '1', lat: 0, lng: 0, delaySeverity: 'green' as const, mode: 'bus' as const, routeShortName: 'TEST' },
-      { id: '2', lat: 0, lng: 0, delaySeverity: 'red' as const, mode: 'bus' as const, routeShortName: 'TEST' },
-      { id: '3', lat: 0, lng: 0, delaySeverity: 'green' as const, mode: 'train' as const, routeShortName: 'TEST' },
+      { id: '1', lat: 0, lng: 0, delaySeverity: 'green' as const, mode: 'bus' as const, routeShortName: 'TEST', routeId: 'test-route' },
+      { id: '2', lat: 0, lng: 0, delaySeverity: 'red' as const, mode: 'bus' as const, routeShortName: 'TEST', routeId: 'test-route' },
+      { id: '3', lat: 0, lng: 0, delaySeverity: 'green' as const, mode: 'train' as const, routeShortName: 'TEST', routeId: 'test-route' },
     ];
     const result = aggregateScorecard(vehicles);
     expect(result.bus).toEqual({ active: 2, percentOnTime: 50 });
@@ -188,8 +193,8 @@ describe('aggregateScorecard', () => {
 
   it('excludes none-severity vehicles from percentage (they count as active but not in pct)', () => {
     const vehicles = [
-      { id: '1', lat: 0, lng: 0, delaySeverity: 'green' as const, mode: 'bus' as const, routeShortName: 'TEST' },
-      { id: '2', lat: 0, lng: 0, delaySeverity: 'none' as const, mode: 'bus' as const, routeShortName: 'TEST' },
+      { id: '1', lat: 0, lng: 0, delaySeverity: 'green' as const, mode: 'bus' as const, routeShortName: 'TEST', routeId: 'test-route' },
+      { id: '2', lat: 0, lng: 0, delaySeverity: 'none' as const, mode: 'bus' as const, routeShortName: 'TEST', routeId: 'test-route' },
     ];
     const result = aggregateScorecard(vehicles);
     expect(result.bus.active).toBe(2);
@@ -198,7 +203,7 @@ describe('aggregateScorecard', () => {
 
   it('returns 0% on time when all vehicles have none severity', () => {
     const vehicles = [
-      { id: '1', lat: 0, lng: 0, delaySeverity: 'none' as const, mode: 'bus' as const, routeShortName: 'TEST' },
+      { id: '1', lat: 0, lng: 0, delaySeverity: 'none' as const, mode: 'bus' as const, routeShortName: 'TEST', routeId: 'test-route' },
     ];
     expect(aggregateScorecard(vehicles).bus.percentOnTime).toBe(0);
   });
@@ -237,5 +242,98 @@ describe('aggregateLeagueTable', () => {
       trip_update: { trip: { route_id: `route-${i}` }, delay: (i + 1) * 200 },
     }));
     expect(aggregateLeagueTable(entities).length).toBeLessThanOrEqual(10);
+  });
+});
+
+describe('calculateNetworkAvgDelaySeconds', () => {
+  it('returns average of positive delays only', () => {
+    const map = new Map([['t1', 300], ['t2', 600], ['t3', -60]]);
+    // -60 excluded (early), average of 300+600 = 450
+    expect(calculateNetworkAvgDelaySeconds(map)).toBe(450);
+  });
+
+  it('returns 0 when no trips have positive delay', () => {
+    const map = new Map([['t1', -120], ['t2', 0]]);
+    expect(calculateNetworkAvgDelaySeconds(map)).toBe(0);
+  });
+
+  it('returns 0 for an empty map', () => {
+    expect(calculateNetworkAvgDelaySeconds(new Map())).toBe(0);
+  });
+});
+
+describe('buildDailyStats', () => {
+  const scorecard: Scorecard = {
+    bus:   { active: 10, percentOnTime: 80 },
+    train: { active: 5,  percentOnTime: 60 },
+    ferry: { active: 2,  percentOnTime: 100 },
+  };
+  const tripDelayMap = new Map([['t1', 300], ['t2', 600]]); // avg = 450s = 7.5 min
+  const worstRoutes: WorstRoute[] = [
+    { routeId: 'route-bus', name: '274', avgDelayMinutes: 8 },
+  ];
+
+  it('creates a first-run stats item with sampleCount 1', () => {
+    const result = buildDailyStats(scorecard, tripDelayMap, worstRoutes, null, '2026-06-04');
+    expect(result.sampleCount).toBe(1);
+    expect(result.date).toBe('2026-06-04');
+    expect(result.onTimePercent.bus).toBe(80);
+    expect(result.onTimePercent.train).toBe(60);
+    expect(result.onTimePercent.ferry).toBe(100);
+    expect(result.avgDelayMinutes).toBeCloseTo(7.5, 1);
+    expect(result.worstOffenders).toEqual([{ routeId: 'route-bus', name: '274', count: 1 }]);
+  });
+
+  it('applies incremental average on second run', () => {
+    const existing: DailyStats = {
+      date: '2026-06-04',
+      sampleCount: 1,
+      onTimePercent: { bus: 80, train: 60, ferry: 100 },
+      avgDelayMinutes: 7.5,
+      worstOffenders: [{ routeId: 'route-bus', name: '274', count: 1 }],
+    };
+    // second run: bus is now 60% on time → rolling avg = (80*1 + 60) / 2 = 70
+    const scorecard2: Scorecard = {
+      bus:   { active: 10, percentOnTime: 60 },
+      train: { active: 5,  percentOnTime: 60 },
+      ferry: { active: 2,  percentOnTime: 100 },
+    };
+    const result = buildDailyStats(scorecard2, tripDelayMap, worstRoutes, existing, '2026-06-04');
+    expect(result.sampleCount).toBe(2);
+    expect(result.onTimePercent.bus).toBe(70);
+    expect(result.worstOffenders[0].count).toBe(2);
+  });
+
+  it('accumulates worst offenders across multiple runs', () => {
+    const existing: DailyStats = {
+      date: '2026-06-04',
+      sampleCount: 1,
+      onTimePercent: { bus: 80, train: 60, ferry: 100 },
+      avgDelayMinutes: 7.5,
+      worstOffenders: [{ routeId: 'route-bus', name: '274', count: 3 }],
+    };
+    const newWorst: WorstRoute[] = [
+      { routeId: 'route-train', name: 'EAST', avgDelayMinutes: 5 },
+    ];
+    const result = buildDailyStats(scorecard, tripDelayMap, newWorst, existing, '2026-06-04');
+    const offenderMap = Object.fromEntries(result.worstOffenders.map(o => [o.routeId, o.count]));
+    expect(offenderMap['route-bus']).toBe(3);   // not in this run, count unchanged
+    expect(offenderMap['route-train']).toBe(1); // new entrant
+  });
+
+  it('sorts worst offenders by count descending', () => {
+    const existing: DailyStats = {
+      date: '2026-06-04',
+      sampleCount: 5,
+      onTimePercent: { bus: 80, train: 60, ferry: 100 },
+      avgDelayMinutes: 5,
+      worstOffenders: [
+        { routeId: 'route-a', name: 'A', count: 2 },
+        { routeId: 'route-b', name: 'B', count: 5 },
+      ],
+    };
+    const result = buildDailyStats(scorecard, new Map(), [], existing, '2026-06-04');
+    expect(result.worstOffenders[0].routeId).toBe('route-b');
+    expect(result.worstOffenders[1].routeId).toBe('route-a');
   });
 });

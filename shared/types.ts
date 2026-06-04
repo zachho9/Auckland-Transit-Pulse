@@ -8,6 +8,7 @@ export interface VehicleSnapshot {
   delaySeverity: DelaySeverity;
   mode: TransitMode;
   routeShortName: string;
+  routeId: string;
 }
 
 export interface ModeStats {
@@ -39,4 +40,22 @@ export interface Snapshot {
   worstRoutes: WorstRoute[];
   alerts: ServiceAlert[];
   vehicles: VehicleSnapshot[];
+}
+
+export interface DailyStats {
+  date: string;
+  sampleCount: number;
+  onTimePercent: { bus: number; train: number; ferry: number };
+  avgDelayMinutes: number;
+  worstOffenders: Array<{ routeId: string; name: string; count: number }>;
+}
+
+export interface ShapeDirection {
+  directionId: number;
+  points: Array<[number, number]>;
+}
+
+export interface RouteShape {
+  routeId: string;
+  directions: ShapeDirection[];
 }
