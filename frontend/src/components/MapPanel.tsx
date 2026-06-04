@@ -108,12 +108,13 @@ export function MapPanel({ theme }: Props) {
       setRouteShape(null);
       return;
     }
-    const isMock = import.meta.env.VITE_MOCK === 'true';
-    if (isMock) return; // no shapes in mock mode
-    fetch(`${SHAPES_URL}/${encodeURIComponent(selectedRouteId)}`)
+    if (import.meta.env.VITE_MOCK === 'true') return;
+    const controller = new AbortController();
+    fetch(`${SHAPES_URL}/${encodeURIComponent(selectedRouteId)}`, { signal: controller.signal })
       .then(r => r.ok ? r.json() : null)
       .then((data: RouteShape | null) => setRouteShape(data))
-      .catch(() => setRouteShape(null));
+      .catch(e => { if ((e as Error).name !== 'AbortError') setRouteShape(null); });
+    return () => controller.abort();
   }, [selectedRouteId]);
 
   // Clear pinned tooltip when route is selected
