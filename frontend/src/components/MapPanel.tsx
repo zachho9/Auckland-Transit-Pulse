@@ -102,6 +102,14 @@ export function MapPanel({ theme }: Props) {
     [vehicles]
   );
 
+  const routeNameToId = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const v of vehicles) {
+      if (!map.has(v.routeShortName)) map.set(v.routeShortName, v.routeId);
+    }
+    return map;
+  }, [vehicles]);
+
   // Fetch shape when a route is selected
   useEffect(() => {
     if (!selectedRouteId) {
@@ -117,11 +125,6 @@ export function MapPanel({ theme }: Props) {
     return () => controller.abort();
   }, [selectedRouteId]);
 
-  // Clear pinned tooltip when route is selected
-  useEffect(() => {
-    if (selectedRouteId) setPinnedId(null);
-  }, [selectedRouteId]);
-
   const routeAvgDelay = snapshot?.worstRoutes.find(r => r.routeId === selectedRouteId)?.avgDelayMinutes ?? 0;
   const polylineColour = delayMinutesToColour(routeAvgDelay);
 
@@ -131,11 +134,8 @@ export function MapPanel({ theme }: Props) {
   );
 
   function handleMapClick() {
-    if (selectedRouteId) {
-      selectRoute(null);
-    } else {
-      setPinnedId(null);
-    }
+    selectRoute(null);
+    setPinnedId(null);
   }
 
   function toggleMode(mode: TransitMode) {
@@ -194,11 +194,9 @@ export function MapPanel({ theme }: Props) {
               eventHandlers={{
                 click: (e) => {
                   e.originalEvent.stopPropagation();
-                  if (!selectedRouteId) {
-                    setPinnedId(prev => prev === v.id ? null : v.id);
-                  } else {
-                    selectRoute(v.routeId === selectedRouteId ? null : v.routeId);
-                  }
+                  const newRouteId = v.routeId === selectedRouteId ? null : v.routeId;
+                  selectRoute(newRouteId);
+                  setPinnedId(newRouteId ? v.id : null);
                 },
               }}
             >
@@ -218,7 +216,14 @@ export function MapPanel({ theme }: Props) {
       </MapContainer>
 
       <div className="absolute top-4 right-4 z-[1000] flex flex-col items-end gap-2">
-        <RouteSearchOverlay options={routeOptions} onSelect={setRouteFilter} />
+        <RouteSearchOverlay
+          options={routeOptions}
+          onSelect={(name) => {
+            setRouteFilter(name);
+            const id = name ? routeNameToId.get(name) : null;
+            selectRoute(id ?? null);
+          }}
+        />
         <ModeFilterBar activeModes={activeModes} onToggle={toggleMode} />
       </div>
     </div>
