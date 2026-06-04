@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "test": "jest",
-    "generate-gtfs": "ts-node scripts/generateGtfsData.ts"
+    "generate-gtfs": "ts-node scripts/generateGtfsData.ts",
+    "generate-shapes": "ts-node scripts/generateShapes.ts"
   },
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.0.0",
@@ -12,6 +13,7 @@
     "@aws-sdk/util-dynamodb": "^3.0.0"
   },
   "devDependencies": {
+    "@aws-sdk/client-s3": "^3.0.0",
     "@types/aws-lambda": "^8.10.0",
     "@types/jest": "^29.0.0",
     "@types/node": "^22.0.0",
