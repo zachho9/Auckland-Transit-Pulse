@@ -6,8 +6,9 @@ import {
   parseAlerts,
   aggregateScorecard,
   aggregateLeagueTable,
+  buildDailyStats,
 } from './aggregator';
-import { writeSnapshot } from './dynamoWriter';
+import { writeSnapshot, readDailyStats, writeDailyStats } from './dynamoWriter';
 import type { Snapshot } from '../../../shared/types';
 
 const ssm = new SSMClient({});
@@ -42,6 +43,14 @@ export const handler = async (): Promise<void> => {
     vehicles,
   };
 
-  await writeSnapshot(snapshot);
+  const today = new Date().toISOString().slice(0, 10);
+  const [, existingStats] = await Promise.all([
+    writeSnapshot(snapshot),
+    readDailyStats(today),
+  ]);
+
+  const updatedStats = buildDailyStats(scorecard, tripDelayMap, worstRoutes, existingStats, today);
+  await writeDailyStats(updatedStats);
+
   console.log(`Snapshot written: ${vehicles.length} vehicles, ${worstRoutes.length} delayed routes, ${alerts.length} alerts`);
 };
