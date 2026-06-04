@@ -1,4 +1,4 @@
-import type { DelaySeverity, Scorecard, ServiceAlert, TransitMode, VehicleSnapshot, WorstRoute } from '../../../shared/types';
+import type { DelaySeverity, DailyStats, Scorecard, ServiceAlert, TransitMode, VehicleSnapshot, WorstRoute } from '../../../shared/types';
 import type { AtEntity } from './atTypes';
 import { routeMap } from './gtfsData';
 
@@ -97,4 +97,47 @@ export function aggregateLeagueTable(entities: AtEntity[]): WorstRoute[] {
     .filter(r => r.avgDelayMinutes > 0)
     .sort((a, b) => b.avgDelayMinutes - a.avgDelayMinutes)
     .slice(0, 10);
+}
+
+export function calculateNetworkAvgDelaySeconds(tripDelayMap: Map<string, number>): number {
+  const positiveDelays = Array.from(tripDelayMap.values()).filter(d => d > 0);
+  if (positiveDelays.length === 0) return 0;
+  return positiveDelays.reduce((a, b) => a + b, 0) / positiveDelays.length;
+}
+
+export function buildDailyStats(
+  scorecard: Scorecard,
+  tripDelayMap: Map<string, number>,
+  worstRoutes: WorstRoute[],
+  existingStats: DailyStats | null,
+  date: string,
+): DailyStats {
+  const sampleCount = (existingStats?.sampleCount ?? 0) + 1;
+
+  function incrementalAvg(oldVal: number, newVal: number): number {
+    return (oldVal * (sampleCount - 1) + newVal) / sampleCount;
+  }
+
+  const onTimePercent = {
+    bus:   Math.round(incrementalAvg(existingStats?.onTimePercent.bus   ?? 0, scorecard.bus.percentOnTime)),
+    train: Math.round(incrementalAvg(existingStats?.onTimePercent.train ?? 0, scorecard.train.percentOnTime)),
+    ferry: Math.round(incrementalAvg(existingStats?.onTimePercent.ferry ?? 0, scorecard.ferry.percentOnTime)),
+  };
+
+  const currentAvgDelayMinutes = calculateNetworkAvgDelaySeconds(tripDelayMap) / 60;
+  const avgDelayMinutes = incrementalAvg(existingStats?.avgDelayMinutes ?? 0, currentAvgDelayMinutes);
+
+  const offenderMap = new Map<string, { name: string; count: number }>();
+  for (const o of (existingStats?.worstOffenders ?? [])) {
+    offenderMap.set(o.routeId, { name: o.name, count: o.count });
+  }
+  for (const route of worstRoutes) {
+    const prev = offenderMap.get(route.routeId);
+    offenderMap.set(route.routeId, { name: route.name, count: (prev?.count ?? 0) + 1 });
+  }
+  const worstOffenders = Array.from(offenderMap.entries())
+    .map(([routeId, { name, count }]) => ({ routeId, name, count }))
+    .sort((a, b) => b.count - a.count);
+
+  return { date, sampleCount, onTimePercent, avgDelayMinutes, worstOffenders };
 }
