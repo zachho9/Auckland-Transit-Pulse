@@ -77,7 +77,7 @@ describe('parseVehicles', () => {
     }];
     const result = parseVehicles(entities, tripDelayMap);
     expect(result).toHaveLength(1);
-    expect(result[0]).toEqual({ id: 'v1', lat: -36.8, lng: 174.7, delaySeverity: 'amber', mode: 'bus', routeShortName: '274' });
+    expect(result[0]).toEqual({ id: 'v1', lat: -36.8, lng: 174.7, delaySeverity: 'amber', mode: 'bus', routeShortName: '274', routeId: 'route-bus' });
   });
 
   it('assigns red severity for delay > 300 seconds', () => {
@@ -90,6 +90,7 @@ describe('parseVehicles', () => {
     }];
     expect(parseVehicles(entities, tripDelayMap)[0].delaySeverity).toBe('red');
     expect(parseVehicles(entities, tripDelayMap)[0].routeShortName).toBe('EAST');
+    expect(parseVehicles(entities, tripDelayMap)[0].routeId).toBe('route-train');
   });
 
   it('assigns none severity when no trip delay data exists for the vehicle', () => {
@@ -103,6 +104,7 @@ describe('parseVehicles', () => {
     expect(parseVehicles(entities, tripDelayMap)[0].delaySeverity).toBe('none');
     expect(parseVehicles(entities, tripDelayMap)[0].mode).toBe('ferry');
     expect(parseVehicles(entities, tripDelayMap)[0].routeShortName).toBe('FERRY1');
+    expect(parseVehicles(entities, tripDelayMap)[0].routeId).toBe('route-ferry');
   });
 
   it('skips vehicles with no position', () => {
@@ -176,9 +178,9 @@ describe('parseAlerts', () => {
 describe('aggregateScorecard', () => {
   it('calculates per-mode active count and on-time percentage', () => {
     const vehicles = [
-      { id: '1', lat: 0, lng: 0, delaySeverity: 'green' as const, mode: 'bus' as const, routeShortName: 'TEST' },
-      { id: '2', lat: 0, lng: 0, delaySeverity: 'red' as const, mode: 'bus' as const, routeShortName: 'TEST' },
-      { id: '3', lat: 0, lng: 0, delaySeverity: 'green' as const, mode: 'train' as const, routeShortName: 'TEST' },
+      { id: '1', lat: 0, lng: 0, delaySeverity: 'green' as const, mode: 'bus' as const, routeShortName: 'TEST', routeId: 'test-route' },
+      { id: '2', lat: 0, lng: 0, delaySeverity: 'red' as const, mode: 'bus' as const, routeShortName: 'TEST', routeId: 'test-route' },
+      { id: '3', lat: 0, lng: 0, delaySeverity: 'green' as const, mode: 'train' as const, routeShortName: 'TEST', routeId: 'test-route' },
     ];
     const result = aggregateScorecard(vehicles);
     expect(result.bus).toEqual({ active: 2, percentOnTime: 50 });
@@ -188,8 +190,8 @@ describe('aggregateScorecard', () => {
 
   it('excludes none-severity vehicles from percentage (they count as active but not in pct)', () => {
     const vehicles = [
-      { id: '1', lat: 0, lng: 0, delaySeverity: 'green' as const, mode: 'bus' as const, routeShortName: 'TEST' },
-      { id: '2', lat: 0, lng: 0, delaySeverity: 'none' as const, mode: 'bus' as const, routeShortName: 'TEST' },
+      { id: '1', lat: 0, lng: 0, delaySeverity: 'green' as const, mode: 'bus' as const, routeShortName: 'TEST', routeId: 'test-route' },
+      { id: '2', lat: 0, lng: 0, delaySeverity: 'none' as const, mode: 'bus' as const, routeShortName: 'TEST', routeId: 'test-route' },
     ];
     const result = aggregateScorecard(vehicles);
     expect(result.bus.active).toBe(2);
@@ -198,7 +200,7 @@ describe('aggregateScorecard', () => {
 
   it('returns 0% on time when all vehicles have none severity', () => {
     const vehicles = [
-      { id: '1', lat: 0, lng: 0, delaySeverity: 'none' as const, mode: 'bus' as const, routeShortName: 'TEST' },
+      { id: '1', lat: 0, lng: 0, delaySeverity: 'none' as const, mode: 'bus' as const, routeShortName: 'TEST', routeId: 'test-route' },
     ];
     expect(aggregateScorecard(vehicles).bus.percentOnTime).toBe(0);
   });

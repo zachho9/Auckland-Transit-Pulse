@@ -46,6 +46,7 @@ export function parseVehicles(
       delaySeverity: classifyDelay(delay),
       mode,
       routeShortName: routeInfo.shortName,
+      routeId: v.trip.route_id!,
     });
   }
   return result;
