@@ -1,4 +1,5 @@
 import { useSnapshot } from '../context/SnapshotContext';
+import { useRouteSelection } from '../context/RouteSelectionContext';
 
 function delayColour(mins: number): string {
   return mins > 5 ? '#ef4444' : '#f59e0b';
@@ -6,14 +7,12 @@ function delayColour(mins: number): string {
 
 export function LeagueTablePanel() {
   const { snapshot } = useSnapshot();
+  const { selectedRouteId, selectRoute } = useRouteSelection();
   const routes = snapshot?.worstRoutes ?? [];
   const maxDelay = routes.length > 0 ? Math.max(...routes.map(r => r.avgDelayMinutes)) : 1;
 
   return (
-    <section className="h-full p-4 overflow-y-auto" style={{ borderBottom: '1px solid var(--border-col)' }}>
-      <h2 style={{ fontSize: '0.62rem', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.85rem' }}>
-        Worst Routes
-      </h2>
+    <section style={{ padding: '0.25rem 1rem 0.85rem' }}>
       {routes.length === 0 ? (
         <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
           {snapshot ? 'All routes running on time' : 'Loading…'}
@@ -23,8 +22,21 @@ export function LeagueTablePanel() {
           {routes.map((r, i) => {
             const pct = (r.avgDelayMinutes / maxDelay) * 100;
             const colour = delayColour(r.avgDelayMinutes);
+            const isSelected = r.routeId === selectedRouteId;
             return (
-              <li key={r.routeId} className="relative flex items-center gap-2" style={{ fontSize: '0.78rem', paddingTop: 2, paddingBottom: 2 }}>
+              <li
+                key={r.routeId}
+                className="relative flex items-center gap-2"
+                onClick={() => selectRoute(isSelected ? null : r.routeId)}
+                style={{
+                  fontSize: '0.78rem',
+                  paddingTop: 2,
+                  paddingBottom: 2,
+                  cursor: 'pointer',
+                  borderRadius: 4,
+                  outline: isSelected ? `1px solid ${colour}` : 'none',
+                }}
+              >
                 <div
                   className="absolute inset-0 rounded"
                   style={{

@@ -5,10 +5,7 @@ export function AlertsPanel() {
   const alerts = snapshot?.alerts ?? [];
 
   return (
-    <section className="h-full p-4 overflow-y-auto">
-      <h2 style={{ fontSize: '0.62rem', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: 'var(--text-secondary)', marginBottom: '0.85rem' }}>
-        Service Alerts
-      </h2>
+    <section style={{ padding: '0.25rem 1rem 0.85rem' }}>
       {alerts.length === 0 ? (
         <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
           {snapshot ? 'No active alerts' : 'Loading…'}
