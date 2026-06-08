@@ -1,8 +1,7 @@
-import { useEffect, useState } from 'react';
-import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
-} from 'recharts';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { DailyStats } from 'shared/types';
+import { ModeIcon, MODE_LABELS, pctColour } from './ScorecardPanel';
+import { delayMinutesToColour } from './MapPanel';
 
 const isMock = import.meta.env.VITE_MOCK === 'true';
 const HISTORY_URL = `${((import.meta.env.VITE_API_URL as string) ?? '').replace(/\/$/, '')}/history`;
@@ -17,11 +16,52 @@ const MOCK_HISTORY: DailyStats[] = [
   { date: '2026-06-04', sampleCount: 720,  onTimePercent: { bus: 84, train: 71, ferry: 97 }, avgDelayMinutes: 4.0, worstOffenders: [{ routeId: 'r1', name: '274', count: 6 }] },
 ];
 
-const CHART_COLOURS = { bus: '#22c55e', train: '#f59e0b', ferry: '#60a5fa' };
 const DELAY_COLOUR = '#ef4444';
+const GOOD_COLOUR = '#22c55e';
 
-function chartLabel(date: string): string {
-  return date.slice(5); // "MM-DD"
+type Trend = { symbol: string; label: string; colour: string };
+
+function getTrend(current: number, previous: number | undefined, higherIsBetter: boolean): Trend {
+  if (previous === undefined) {
+    return { symbol: '▬', label: '', colour: 'var(--text-muted)' };
+  }
+  const delta = Math.round((current - previous) * 10) / 10;
+  if (delta === 0) {
+    return { symbol: '▬', label: '0', colour: 'var(--text-muted)' };
+  }
+  const isGood = higherIsBetter ? delta > 0 : delta < 0;
+  return {
+    symbol: delta > 0 ? '▲' : '▼',
+    label: delta > 0 ? `+${delta}` : `${delta}`,
+    colour: isGood ? GOOD_COLOUR : DELAY_COLOUR,
+  };
+}
+
+function TrendBarRow({ icon, label, value, barPct, barColour, trend }: {
+  icon: ReactNode;
+  label: string;
+  value: string;
+  barPct: number;
+  barColour: string;
+  trend: Trend;
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', width: '3.5rem', flexShrink: 0, color: 'var(--text-secondary)' }}>
+        <span style={{ display: 'inline-flex', width: 11, justifyContent: 'center', flexShrink: 0 }}>{icon}</span>
+        <span style={{ fontSize: '0.7rem' }}>{label}</span>
+      </div>
+      <div style={{ flex: 1, height: 5, borderRadius: 3, background: 'var(--border-col)', overflow: 'hidden' }}>
+        <div style={{ width: `${barPct}%`, height: '100%', borderRadius: 3, background: barColour, transition: 'width 0.7s ease' }} />
+      </div>
+      <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontWeight: 700, fontSize: '0.86rem', color: barColour, lineHeight: 1, minWidth: '3rem', textAlign: 'right' }}>
+        {value}
+      </span>
+      <span style={{ fontSize: '0.64rem', color: trend.colour, minWidth: '2.6rem', textAlign: 'right', flexShrink: 0 }}>
+        {trend.symbol} {trend.label}
+      </span>
+    </div>
+  );
 }
 
 export function HistoryPanel() {
@@ -60,84 +100,39 @@ export function HistoryPanel() {
     );
   }
 
-  const onTimeData = history.map(d => ({
-    date: chartLabel(d.date),
-    bus:   d.onTimePercent.bus,
-    train: d.onTimePercent.train,
-    ferry: d.onTimePercent.ferry,
-  }));
+  const latest = history[history.length - 1];
+  const previousDay = history.length > 1 ? history[history.length - 2] : undefined;
 
-  const delayData = history.map(d => ({
-    date:  chartLabel(d.date),
-    delay: Math.round(d.avgDelayMinutes * 10) / 10,
-  }));
-
-  // Aggregate worst offenders across all days
-  const offenderTotals = new Map<string, { name: string; total: number }>();
-  for (const day of history) {
-    for (const o of day.worstOffenders) {
-      const prev = offenderTotals.get(o.routeId);
-      offenderTotals.set(o.routeId, { name: o.name, total: (prev?.total ?? 0) + o.count });
-    }
-  }
-  const topOffenders = Array.from(offenderTotals.entries())
-    .map(([routeId, { name, total }]) => ({ routeId, name, total }))
-    .sort((a, b) => b.total - a.total)
-    .slice(0, 5);
-
-  const tooltipStyle = {
-    background: 'var(--bg-elevated)',
-    border: '1px solid var(--border-col)',
-    borderRadius: 4,
-    fontSize: '0.7rem',
-    color: 'var(--text-primary)',
-  };
+  const delayValue = Math.round(latest.avgDelayMinutes * 10) / 10;
+  const delayTrend = getTrend(latest.avgDelayMinutes, previousDay?.avgDelayMinutes, false);
+  const maxDelay = Math.max(...history.map(d => d.avgDelayMinutes));
 
   return (
     <div style={{ padding: '0.5rem 0.75rem 0.75rem' }}>
-      <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '0.6rem' }}>
-        On-time % by mode
-      </p>
-      <ResponsiveContainer width="100%" height={90}>
-        <LineChart data={onTimeData} margin={{ top: 2, right: 8, left: -28, bottom: 0 }}>
-          <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} tickLine={false} />
-          <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: 'var(--text-muted)' }} tickLine={false} />
-          <Tooltip contentStyle={tooltipStyle} />
-          <Legend iconType="circle" iconSize={6} wrapperStyle={{ fontSize: '0.65rem', paddingTop: 2 }} />
-          <Line type="monotone" dataKey="bus"   stroke={CHART_COLOURS.bus}   dot={false} strokeWidth={1.5} />
-          <Line type="monotone" dataKey="train" stroke={CHART_COLOURS.train} dot={false} strokeWidth={1.5} />
-          <Line type="monotone" dataKey="ferry" stroke={CHART_COLOURS.ferry} dot={false} strokeWidth={1.5} />
-        </LineChart>
-      </ResponsiveContainer>
-
-      <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '0.6rem 0 0.4rem' }}>
-        Network avg delay (min)
-      </p>
-      <ResponsiveContainer width="100%" height={70}>
-        <LineChart data={delayData} margin={{ top: 2, right: 8, left: -28, bottom: 0 }}>
-          <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} tickLine={false} />
-          <YAxis tick={{ fontSize: 9, fill: 'var(--text-muted)' }} tickLine={false} />
-          <Tooltip contentStyle={tooltipStyle} />
-          <Line type="monotone" dataKey="delay" stroke={DELAY_COLOUR} dot={false} strokeWidth={1.5} />
-        </LineChart>
-      </ResponsiveContainer>
-
-      {topOffenders.length > 0 && (
-        <>
-          <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '0.6rem 0 0.4rem' }}>
-            Chronic worst routes (7-day)
-          </p>
-          <ol style={{ listStyle: 'none', padding: 0, margin: 0 }}>
-            {topOffenders.map((o, i) => (
-              <li key={o.routeId} style={{ display: 'flex', gap: '0.4rem', alignItems: 'center', fontSize: '0.72rem', marginBottom: '0.2rem' }}>
-                <span style={{ color: 'var(--text-muted)', width: '1rem', textAlign: 'right' }}>{i + 1}.</span>
-                <span style={{ color: 'var(--text-primary)', flex: 1 }}>{o.name}</span>
-                <span style={{ color: '#f59e0b', fontSize: '0.68rem' }}>{o.total}× in top 10</span>
-              </li>
-            ))}
-          </ol>
-        </>
-      )}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+        {(['bus', 'train', 'ferry'] as const).map(mode => {
+          const pct = latest.onTimePercent[mode];
+          return (
+            <TrendBarRow
+              key={mode}
+              icon={<ModeIcon mode={mode} />}
+              label={MODE_LABELS[mode]}
+              value={`${pct}%`}
+              barPct={pct}
+              barColour={pctColour(pct)}
+              trend={getTrend(pct, previousDay?.onTimePercent[mode], true)}
+            />
+          );
+        })}
+        <TrendBarRow
+          icon={null}
+          label="Delay"
+          value={`${delayValue} min`}
+          barPct={maxDelay > 0 ? (delayValue / maxDelay) * 100 : 0}
+          barColour={delayMinutesToColour(delayValue)}
+          trend={delayTrend}
+        />
+      </div>
     </div>
   );
 }
