@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend,
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
 } from 'recharts';
 import type { DailyStats } from 'shared/types';
 
@@ -19,9 +19,28 @@ const MOCK_HISTORY: DailyStats[] = [
 
 const CHART_COLOURS = { bus: '#22c55e', train: '#f59e0b', ferry: '#60a5fa' };
 const DELAY_COLOUR = '#ef4444';
+const GOOD_COLOUR = '#22c55e';
 
 function chartLabel(date: string): string {
   return date.slice(5); // "MM-DD"
+}
+
+type Trend = { symbol: string; label: string; colour: string };
+
+function getTrend(current: number, previous: number | undefined, higherIsBetter: boolean): Trend {
+  if (previous === undefined) {
+    return { symbol: '▬', label: '', colour: 'var(--text-muted)' };
+  }
+  const delta = Math.round((current - previous) * 10) / 10;
+  if (delta === 0) {
+    return { symbol: '▬', label: '0', colour: 'var(--text-muted)' };
+  }
+  const isGood = higherIsBetter ? delta > 0 : delta < 0;
+  return {
+    symbol: delta > 0 ? '▲' : '▼',
+    label: delta > 0 ? `+${delta}` : `${delta}`,
+    colour: isGood ? GOOD_COLOUR : DELAY_COLOUR,
+  };
 }
 
 export function HistoryPanel() {
@@ -60,12 +79,8 @@ export function HistoryPanel() {
     );
   }
 
-  const onTimeData = history.map(d => ({
-    date: chartLabel(d.date),
-    bus:   d.onTimePercent.bus,
-    train: d.onTimePercent.train,
-    ferry: d.onTimePercent.ferry,
-  }));
+  const latest = history[history.length - 1];
+  const previousDay = history.length > 1 ? history[history.length - 2] : undefined;
 
   const delayData = history.map(d => ({
     date:  chartLabel(d.date),
@@ -96,19 +111,26 @@ export function HistoryPanel() {
   return (
     <div style={{ padding: '0.5rem 0.75rem 0.75rem' }}>
       <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', marginBottom: '0.6rem' }}>
-        On-time % by mode
+        On-time by mode
       </p>
-      <ResponsiveContainer width="100%" height={90}>
-        <LineChart data={onTimeData} margin={{ top: 2, right: 8, left: -28, bottom: 0 }}>
-          <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} tickLine={false} />
-          <YAxis domain={[0, 100]} tick={{ fontSize: 9, fill: 'var(--text-muted)' }} tickLine={false} />
-          <Tooltip contentStyle={tooltipStyle} />
-          <Legend iconType="circle" iconSize={6} wrapperStyle={{ fontSize: '0.65rem', paddingTop: 2 }} />
-          <Line type="monotone" dataKey="bus"   stroke={CHART_COLOURS.bus}   dot={false} strokeWidth={1.5} />
-          <Line type="monotone" dataKey="train" stroke={CHART_COLOURS.train} dot={false} strokeWidth={1.5} />
-          <Line type="monotone" dataKey="ferry" stroke={CHART_COLOURS.ferry} dot={false} strokeWidth={1.5} />
-        </LineChart>
-      </ResponsiveContainer>
+      <div style={{ display: 'flex', gap: '0.5rem' }}>
+        {(['bus', 'train', 'ferry'] as const).map(mode => {
+          const trend = getTrend(latest.onTimePercent[mode], previousDay?.onTimePercent[mode], true);
+          return (
+            <div key={mode} style={{ flex: 1, textAlign: 'center' }}>
+              <p style={{ fontSize: '0.6rem', color: 'var(--text-muted)', textTransform: 'capitalize', margin: '0 0 0.2rem' }}>
+                {mode}
+              </p>
+              <p style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1rem', fontWeight: 700, color: CHART_COLOURS[mode], margin: 0, lineHeight: 1 }}>
+                {latest.onTimePercent[mode]}%
+              </p>
+              <p style={{ fontSize: '0.66rem', color: trend.colour, margin: '0.2rem 0 0' }}>
+                {trend.symbol} {trend.label}
+              </p>
+            </div>
+          );
+        })}
+      </div>
 
       <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '0.6rem 0 0.4rem' }}>
         Network avg delay (min)
