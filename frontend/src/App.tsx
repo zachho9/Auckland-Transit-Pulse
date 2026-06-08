@@ -36,7 +36,7 @@ export function App() {
                 <CollapsibleSection title="Worst Routes">
                   <LeagueTablePanel />
                 </CollapsibleSection>
-                <CollapsibleSection title="7-Day Trends">
+                <CollapsibleSection title="7-Day On-time">
                   <HistoryPanel />
                 </CollapsibleSection>
                 <CollapsibleSection title="Service Alerts">
