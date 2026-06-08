@@ -140,7 +140,7 @@ Run from `frontend/`:
 npx tsc --noEmit
 ```
 
-Expected: This will currently **fail** with `'delayData' is declared but its value is never read` — that's expected, because Task 2 hasn't run yet and `delayData` still feeds the still-present delay `LineChart`. Confirm the *only* errors mentioned are about the now-unused `onTimeData`-related identifiers being gone cleanly (i.e. no errors reference `onTimeData`, `latest`, `previousDay`, or `getTrend` — those should all be valid and used). If you see any error mentioning `onTimeData`, `latest`, `previousDay`, `getTrend`, or `mode`/`CHART_COLOURS[mode]` type mismatches, fix them before proceeding. Errors about `delayData`/`chartLabel`/`tooltipStyle`/`recharts` being unused are expected at this point and will be resolved in Task 2.
+Expected: **no errors**. At this point `onTimeData` has been fully removed and replaced (nothing references it anymore), while `delayData`, `chartLabel`, `tooltipStyle`, and the `recharts` import are all still actively used by the still-present "Network avg delay" `LineChart` — so nothing should be flagged as unused yet. If you see any error, it will name the problem identifier (most likely a typo in `latest`, `previousDay`, `getTrend`, or a `mode`/`CHART_COLOURS[mode]` type mismatch) — fix it before proceeding. (The `delayData`/`chartLabel`/`tooltipStyle`/`recharts` cleanup happens in Task 2, once the second chart is also removed and they genuinely become unused.)
 
 - [ ] **Step 5: Commit**
 
