@@ -75,7 +75,7 @@ function RouteFitter({ allPoints }: { allPoints: [number, number][] }) {
   return null;
 }
 
-function delayMinutesToColour(avgDelayMinutes: number): string {
+export function delayMinutesToColour(avgDelayMinutes: number): string {
   if (avgDelayMinutes <= 2) return '#22c55e';
   if (avgDelayMinutes <= 5) return '#f59e0b';
   return '#ef4444';

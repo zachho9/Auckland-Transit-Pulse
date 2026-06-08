@@ -1,13 +1,13 @@
 import { useSnapshot } from '../context/SnapshotContext';
 import type { TransitMode } from 'shared/types';
 
-const MODE_LABELS: Record<TransitMode, string> = {
+export const MODE_LABELS: Record<TransitMode, string> = {
   bus: 'Bus',
   train: 'Train',
   ferry: 'Ferry',
 };
 
-function ModeIcon({ mode }: { mode: TransitMode }) {
+export function ModeIcon({ mode }: { mode: TransitMode }) {
   if (mode === 'bus') {
     return (
       <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
@@ -51,7 +51,7 @@ function ArcGauge({ pct, colour }: { pct: number; colour: string }) {
   );
 }
 
-function pctColour(pct: number): string {
+export function pctColour(pct: number): string {
   if (pct >= 90) return '#22c55e';
   if (pct >= 75) return '#f59e0b';
   return '#ef4444';
