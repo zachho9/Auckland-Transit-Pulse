@@ -1,7 +1,4 @@
 import { useEffect, useState } from 'react';
-import {
-  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer,
-} from 'recharts';
 import type { DailyStats } from 'shared/types';
 
 const isMock = import.meta.env.VITE_MOCK === 'true';
@@ -20,10 +17,6 @@ const MOCK_HISTORY: DailyStats[] = [
 const CHART_COLOURS = { bus: '#22c55e', train: '#f59e0b', ferry: '#60a5fa' };
 const DELAY_COLOUR = '#ef4444';
 const GOOD_COLOUR = '#22c55e';
-
-function chartLabel(date: string): string {
-  return date.slice(5); // "MM-DD"
-}
 
 type Trend = { symbol: string; label: string; colour: string };
 
@@ -82,10 +75,8 @@ export function HistoryPanel() {
   const latest = history[history.length - 1];
   const previousDay = history.length > 1 ? history[history.length - 2] : undefined;
 
-  const delayData = history.map(d => ({
-    date:  chartLabel(d.date),
-    delay: Math.round(d.avgDelayMinutes * 10) / 10,
-  }));
+  const delayValue = Math.round(latest.avgDelayMinutes * 10) / 10;
+  const delayTrend = getTrend(latest.avgDelayMinutes, previousDay?.avgDelayMinutes, false);
 
   // Aggregate worst offenders across all days
   const offenderTotals = new Map<string, { name: string; total: number }>();
@@ -99,14 +90,6 @@ export function HistoryPanel() {
     .map(([routeId, { name, total }]) => ({ routeId, name, total }))
     .sort((a, b) => b.total - a.total)
     .slice(0, 5);
-
-  const tooltipStyle = {
-    background: 'var(--bg-elevated)',
-    border: '1px solid var(--border-col)',
-    borderRadius: 4,
-    fontSize: '0.7rem',
-    color: 'var(--text-primary)',
-  };
 
   return (
     <div style={{ padding: '0.5rem 0.75rem 0.75rem' }}>
@@ -133,21 +116,21 @@ export function HistoryPanel() {
       </div>
 
       <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '0.6rem 0 0.4rem' }}>
-        Network avg delay (min)
+        Avg delay
       </p>
-      <ResponsiveContainer width="100%" height={70}>
-        <LineChart data={delayData} margin={{ top: 2, right: 8, left: -28, bottom: 0 }}>
-          <XAxis dataKey="date" tick={{ fontSize: 9, fill: 'var(--text-muted)' }} tickLine={false} />
-          <YAxis tick={{ fontSize: 9, fill: 'var(--text-muted)' }} tickLine={false} />
-          <Tooltip contentStyle={tooltipStyle} />
-          <Line type="monotone" dataKey="delay" stroke={DELAY_COLOUR} dot={false} strokeWidth={1.5} />
-        </LineChart>
-      </ResponsiveContainer>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.5rem' }}>
+        <span style={{ fontFamily: "'Barlow Condensed', sans-serif", fontSize: '1rem', fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1 }}>
+          {delayValue} min
+        </span>
+        <span style={{ fontSize: '0.66rem', color: delayTrend.colour }}>
+          {delayTrend.symbol} {delayTrend.label}
+        </span>
+      </div>
 
       {topOffenders.length > 0 && (
         <>
           <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', margin: '0.6rem 0 0.4rem' }}>
-            Chronic worst routes (7-day)
+            Worst routes
           </p>
           <ol style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             {topOffenders.map((o, i) => (
