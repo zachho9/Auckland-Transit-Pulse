@@ -5,6 +5,7 @@ import { MapPanel } from './components/MapPanel';
 import { ScorecardPanel } from './components/ScorecardPanel';
 import { LeagueTablePanel } from './components/LeagueTablePanel';
 import { HistoryPanel } from './components/HistoryPanel';
+import { HourlyPanel } from './components/HourlyPanel';
 import { AlertsPanel } from './components/AlertsPanel';
 import { CollapsibleSection } from './components/CollapsibleSection';
 import { useState } from 'react';
@@ -38,6 +39,9 @@ export function App() {
                 </CollapsibleSection>
                 <CollapsibleSection title="7-Day On-time">
                   <HistoryPanel />
+                </CollapsibleSection>
+                <CollapsibleSection title="Hourly On-Time Rate">
+                  <HourlyPanel />
                 </CollapsibleSection>
                 <CollapsibleSection title="Service Alerts">
                   <AlertsPanel />
