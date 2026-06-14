@@ -8,9 +8,10 @@ import {
   parseVehicles,
   calculateNetworkAvgDelaySeconds,
   buildDailyStats,
+  buildHourlyStats,
 } from '../src/poller/aggregator';
 import type { AtEntity } from '../src/poller/atTypes';
-import type { Scorecard, DailyStats, WorstRoute } from '../../shared/types';
+import type { Scorecard, DailyStats, HourlyStats, WorstRoute } from '../../shared/types';
 
 jest.mock('../src/poller/gtfsData', () => ({
   routeMap: {
@@ -335,5 +336,42 @@ describe('buildDailyStats', () => {
     const result = buildDailyStats(scorecard, new Map(), [], existing, '2026-06-04');
     expect(result.worstOffenders[0].routeId).toBe('route-b');
     expect(result.worstOffenders[1].routeId).toBe('route-a');
+  });
+});
+
+describe('buildHourlyStats', () => {
+  const scorecard: Scorecard = {
+    bus:   { active: 10, percentOnTime: 80 },
+    train: { active: 5,  percentOnTime: 60 },
+    ferry: { active: 2,  percentOnTime: 100 },
+  };
+
+  it('creates a first-run stats item with sampleCount 1', () => {
+    const result = buildHourlyStats(scorecard, null, 8);
+    expect(result).toEqual({
+      hour: 8,
+      sampleCount: 1,
+      onTimePercent: { bus: 80, train: 60, ferry: 100 },
+    });
+  });
+
+  it('applies incremental average on second run', () => {
+    const existing: HourlyStats = {
+      hour: 8,
+      sampleCount: 1,
+      onTimePercent: { bus: 80, train: 60, ferry: 100 },
+    };
+    // second run: bus is now 60% on time -> rolling avg = (80*1 + 60) / 2 = 70
+    const scorecard2: Scorecard = {
+      bus:   { active: 10, percentOnTime: 60 },
+      train: { active: 5,  percentOnTime: 60 },
+      ferry: { active: 2,  percentOnTime: 100 },
+    };
+    const result = buildHourlyStats(scorecard2, existing, 8);
+    expect(result.sampleCount).toBe(2);
+    expect(result.onTimePercent.bus).toBe(70);
+    expect(result.onTimePercent.train).toBe(60);
+    expect(result.onTimePercent.ferry).toBe(100);
+    expect(result.hour).toBe(8);
   });
 });
