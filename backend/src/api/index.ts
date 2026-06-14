@@ -1,5 +1,5 @@
 import type { APIGatewayProxyHandler, APIGatewayProxyResult } from 'aws-lambda';
-import { readSnapshot, readHistory } from './dynamoReader';
+import { readSnapshot, readHistory, readHourlyHistory } from './dynamoReader';
 import { readShape } from './s3Reader';
 
 const CORS_HEADERS = {
@@ -27,6 +27,11 @@ async function handleHistory(): Promise<APIGatewayProxyResult> {
   return ok(history);
 }
 
+async function handleHourlyHistory(): Promise<APIGatewayProxyResult> {
+  const hourly = await readHourlyHistory();
+  return ok(hourly);
+}
+
 async function handleShape(routeId: string): Promise<APIGatewayProxyResult> {
   const shape = await readShape(routeId);
   if (!shape) return err(404, 'Shape not found');
@@ -39,6 +44,7 @@ export const handler: APIGatewayProxyHandler = async (event) => {
 
     if (resource === '/snapshot') return handleSnapshot();
     if (resource === '/history')  return handleHistory();
+    if (resource === '/hourly')   return handleHourlyHistory();
     if (resource === '/shapes/{routeId}') {
       const routeId = event.pathParameters?.routeId;
       if (!routeId) return err(400, 'Missing routeId');

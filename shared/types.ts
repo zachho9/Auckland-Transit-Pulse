@@ -50,6 +50,12 @@ export interface DailyStats {
   worstOffenders: Array<{ routeId: string; name: string; count: number }>;
 }
 
+export interface HourlyStats {
+  hour: number;
+  sampleCount: number;
+  onTimePercent: { bus: number; train: number; ferry: number };
+}
+
 export interface ShapeDirection {
   directionId: number;
   points: Array<[number, number]>;

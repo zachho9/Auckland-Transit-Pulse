@@ -1,4 +1,4 @@
-import type { DelaySeverity, DailyStats, Scorecard, ServiceAlert, TransitMode, VehicleSnapshot, WorstRoute } from '../../../shared/types';
+import type { DelaySeverity, DailyStats, HourlyStats, Scorecard, ServiceAlert, TransitMode, VehicleSnapshot, WorstRoute } from '../../../shared/types';
 import type { AtEntity } from './atTypes';
 import { routeMap } from './gtfsData';
 
@@ -140,4 +140,24 @@ export function buildDailyStats(
     .sort((a, b) => b.count - a.count);
 
   return { date, sampleCount, onTimePercent, avgDelayMinutes, worstOffenders };
+}
+
+export function buildHourlyStats(
+  scorecard: Scorecard,
+  existingStats: HourlyStats | null,
+  hour: number,
+): HourlyStats {
+  const sampleCount = (existingStats?.sampleCount ?? 0) + 1;
+
+  function incrementalAvg(oldVal: number, newVal: number): number {
+    return (oldVal * (sampleCount - 1) + newVal) / sampleCount;
+  }
+
+  const onTimePercent = {
+    bus:   Math.round(incrementalAvg(existingStats?.onTimePercent.bus   ?? 0, scorecard.bus.percentOnTime)),
+    train: Math.round(incrementalAvg(existingStats?.onTimePercent.train ?? 0, scorecard.train.percentOnTime)),
+    ferry: Math.round(incrementalAvg(existingStats?.onTimePercent.ferry ?? 0, scorecard.ferry.percentOnTime)),
+  };
+
+  return { hour, sampleCount, onTimePercent };
 }
