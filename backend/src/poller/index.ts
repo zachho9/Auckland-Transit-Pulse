@@ -7,8 +7,10 @@ import {
   aggregateScorecard,
   aggregateLeagueTable,
   buildDailyStats,
+  buildHourlyStats,
 } from './aggregator';
-import { writeSnapshot, readDailyStats, writeDailyStats } from './dynamoWriter';
+import { writeSnapshot, readDailyStats, writeDailyStats, readHourlyStats, writeHourlyStats } from './dynamoWriter';
+import { getNzDateAndHour } from '../lib/time';
 import type { Snapshot } from '../../../shared/types';
 
 const ssm = new SSMClient({});
@@ -44,13 +46,21 @@ export const handler = async (): Promise<void> => {
   };
 
   const today = new Date().toISOString().slice(0, 10);
-  const [, existingStats] = await Promise.all([
+  const { date: nzDate, hour: nzHour } = getNzDateAndHour(new Date());
+
+  const [, existingDailyStats, existingHourlyStats] = await Promise.all([
     writeSnapshot(snapshot),
     readDailyStats(today),
+    readHourlyStats(nzDate, nzHour),
   ]);
 
-  const updatedStats = buildDailyStats(scorecard, tripDelayMap, worstRoutes, existingStats, today);
-  await writeDailyStats(updatedStats);
+  const updatedDailyStats = buildDailyStats(scorecard, tripDelayMap, worstRoutes, existingDailyStats, today);
+  const updatedHourlyStats = buildHourlyStats(scorecard, existingHourlyStats, nzHour);
+
+  await Promise.all([
+    writeDailyStats(updatedDailyStats),
+    writeHourlyStats(nzDate, updatedHourlyStats),
+  ]);
 
   console.log(`Snapshot written: ${vehicles.length} vehicles, ${worstRoutes.length} delayed routes, ${alerts.length} alerts`);
 };
