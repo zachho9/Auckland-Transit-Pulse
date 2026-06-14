@@ -92,6 +92,7 @@ export class AucklandTransitPulseStack extends Stack {
 
     api.root.addResource('snapshot').addMethod('GET', integration);
     api.root.addResource('history').addMethod('GET', integration);
+    api.root.addResource('hourly').addMethod('GET', integration);
 
     const shapesResource = api.root.addResource('shapes');
     shapesResource.addResource('{routeId}').addMethod('GET', integration);
