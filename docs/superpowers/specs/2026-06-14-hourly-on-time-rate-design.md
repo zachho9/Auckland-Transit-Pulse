@@ -76,3 +76,12 @@ sections.
 - Rolling 24h window spanning into yesterday (deferred — today-only for now).
 - Per-dot severity colouring (lines use fixed mode colours, not pctColour).
 - Avg delay or worst-offenders breakdown by hour (only on-time % per mode).
+
+## Follow-up (separate work, not in this spec)
+
+- `daily-stats` currently keys off UTC date (`new Date().toISOString().slice(0,10)`),
+  so the "day" resets at 12pm/1pm NZ time rather than NZ midnight. Switching
+  the poller's daily key and the `/history` query range to the same
+  `Pacific/Auckland` helper introduced here would align it with NZ local time.
+  No migration needed — existing UTC-keyed `daily-stats` rows age out via the
+  existing 8-day TTL.
