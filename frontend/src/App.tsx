@@ -13,7 +13,7 @@ import { useState } from 'react';
 export type Theme = 'dark' | 'light';
 
 export function App() {
-  const [theme, setTheme] = useState<Theme>('dark');
+  const [theme, setTheme] = useState<Theme>('light');
 
   return (
     <SnapshotProvider>
@@ -37,11 +37,11 @@ export function App() {
                 <CollapsibleSection title="Worst Routes">
                   <LeagueTablePanel />
                 </CollapsibleSection>
+                <CollapsibleSection title="Hourly On-Time">
+                  <HourlyPanel />
+                </CollapsibleSection>
                 <CollapsibleSection title="7-Day On-time">
                   <HistoryPanel />
-                </CollapsibleSection>
-                <CollapsibleSection title="Hourly On-Time Rate">
-                  <HourlyPanel />
                 </CollapsibleSection>
                 <CollapsibleSection title="Service Alerts">
                   <AlertsPanel />
