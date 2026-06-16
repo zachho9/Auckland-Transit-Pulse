@@ -1,5 +1,7 @@
 # Auckland Transit Pulse
 
+<img width="1682" height="1040" alt="atpulse" src="https://github.com/user-attachments/assets/f8bf8f45-a3c5-49a4-b5db-46c317bd89f8" />
+
 A real-time network health monitor for Auckland public transport. Not a trip planner — it answers "how well is the network running *right now*?"
 
 **Live demo:** https://main.d7yvveey6muxf.amplifyapp.com
